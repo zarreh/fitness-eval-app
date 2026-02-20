@@ -1,0 +1,29 @@
+Based on the fitness assessment results below, draft a starter workout plan for the coach's review and modification.
+
+CLIENT PROFILE:
+- Name: {client_name}
+- Age: {client_age}
+- Gender: {client_gender}
+- Goals: {goals}
+
+ASSESSMENT RESULTS (pre-calculated — do not recalculate):
+{results_table}
+
+Draft a weekly workout plan with the following structure:
+
+## Recommended Training Frequency
+Suggest days per week and approximate session duration based on the client's goals and current fitness level.
+
+## Warm-Up (5-10 min)
+A brief, general warm-up routine suitable for this client.
+
+## Main Workout
+Organized by the client's primary goals. Directly address the areas for improvement identified in the assessment. Include exercise names, sets, reps or duration, and rest periods. Keep it realistic for the client's current fitness level.
+
+## Cool-Down & Flexibility (5-10 min)
+A brief cool-down and stretching routine, with extra attention to any flexibility gaps shown in the assessment.
+
+## Notes for the Coach
+Any specific considerations or progressions the coach should be aware of when implementing this plan.
+
+Important: This is a draft for the coach's professional review and modification. Do not recommend supplements, medications, or make medical claims.

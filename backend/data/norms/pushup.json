@@ -1,0 +1,24 @@
+{
+  "test_name": "Push-up Test",
+  "unit": "reps",
+  "category": "strength",
+  "target_area": "Upper Body Push",
+  "source": "ACSM Guidelines for Exercise Testing and Prescription, 11th Edition",
+  "notes": "Males perform standard push-ups; females perform modified (knee) push-ups.",
+  "norms": {
+    "male": {
+      "20-29": {"excellent": 36, "good": 29, "average": 22, "below_average": 17, "poor": 0},
+      "30-39": {"excellent": 30, "good": 22, "average": 17, "below_average": 12, "poor": 0},
+      "40-49": {"excellent": 25, "good": 17, "average": 13, "below_average": 10, "poor": 0},
+      "50-59": {"excellent": 21, "good": 13, "average": 10, "below_average": 7, "poor": 0},
+      "60+":   {"excellent": 18, "good": 11, "average": 8,  "below_average": 5,  "poor": 0}
+    },
+    "female": {
+      "20-29": {"excellent": 30, "good": 21, "average": 15, "below_average": 10, "poor": 0},
+      "30-39": {"excellent": 27, "good": 20, "average": 13, "below_average": 8,  "poor": 0},
+      "40-49": {"excellent": 24, "good": 15, "average": 11, "below_average": 5,  "poor": 0},
+      "50-59": {"excellent": 21, "good": 11, "average": 7,  "below_average": 2,  "poor": 0},
+      "60+":   {"excellent": 17, "good": 12, "average": 5,  "below_average": 2,  "poor": 0}
+    }
+  }
+}

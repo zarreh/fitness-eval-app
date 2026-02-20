@@ -1,0 +1,24 @@
+Generate a professional fitness assessment summary for the following client. This summary will be reviewed by the coach before being shared with the client.
+
+CLIENT PROFILE:
+- Name: {client_name}
+- Age: {client_age}
+- Gender: {client_gender}
+- Goals: {goals}
+- Coach notes: {coach_notes}
+
+ASSESSMENT RESULTS (pre-calculated by the fitness logic engine — do not recalculate):
+{results_table}
+
+Write a structured summary with exactly these three sections:
+
+## Overall Summary
+2-3 sentences giving a holistic view of {client_name}'s current fitness level based on the ratings above. Reference specific results to ground the summary.
+
+## Strengths
+Bullet points highlighting the areas where {client_name} performed well. Be specific and encouraging.
+
+## Areas for Improvement
+Bullet points identifying areas that would benefit from focused attention. Frame each point constructively — as an opportunity, not a criticism. Connect each area to the client's stated goals where relevant.
+
+Keep the tone professional and motivating. Do not perform any calculations or question the provided ratings.

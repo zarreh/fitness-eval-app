@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fitness Assessment Report — {{ report.client.name }}</title>
+  <style>
+    /* ── Page setup ── */
+    @page {
+      size: A4;
+      margin: 20mm 18mm 20mm 18mm;
+      @top-right {
+        content: "{{ report.client.name }} — Fitness Assessment";
+        font-size: 9pt;
+        color: #888;
+      }
+      @bottom-center {
+        content: "Page " counter(page) " of " counter(pages);
+        font-size: 9pt;
+        color: #888;
+      }
+    }
+
+    /* ── Base typography ── */
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.55;
+      color: #222;
+      margin: 0;
+    }
+
+    h1 { font-size: 22pt; margin: 0 0 4px 0; color: #1a1a2e; }
+    h2 { font-size: 13pt; color: #1a1a2e; border-bottom: 2px solid #e0e0e0; padding-bottom: 4px; margin-top: 22px; }
+    h3 { font-size: 11pt; color: #333; margin-bottom: 4px; }
+
+    /* ── Cover header ── */
+    .cover-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 3px solid #1a1a2e;
+    }
+    .logo-placeholder {
+      width: 120px;
+      height: 48px;
+      border: 2px dashed #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa;
+      font-size: 9pt;
+      border-radius: 4px;
+    }
+    .report-title { text-align: right; }
+    .report-date { color: #666; font-size: 9.5pt; margin-top: 2px; }
+
+    /* ── Client info grid ── */
+    .client-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 24px;
+      background: #f7f8fc;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin-bottom: 4px;
+    }
+    .client-field label { font-weight: bold; font-size: 9pt; color: #555; display: block; }
+    .client-field span  { font-size: 10.5pt; }
+
+    /* ── Results table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 10pt;
+    }
+    thead th {
+      background: #1a1a2e;
+      color: #fff;
+      text-align: left;
+      padding: 8px 10px;
+      font-weight: 600;
+    }
+    tbody tr:nth-child(even) { background: #f7f8fc; }
+    tbody td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+
+    /* ── Rating badges ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .badge-excellent    { background: #d4edda; color: #155724; }
+    .badge-good         { background: #c8f0c8; color: #1e6b1e; }
+    .badge-average      { background: #fff3cd; color: #856404; }
+    .badge-below-average{ background: #fde8d0; color: #8a3c00; }
+    .badge-poor         { background: #f8d7da; color: #721c24; }
+
+    /* ── Narrative sections ── */
+    .narrative {
+      background: #fafafa;
+      border-left: 4px solid #1a1a2e;
+      padding: 12px 16px;
+      margin-top: 10px;
+      border-radius: 0 4px 4px 0;
+      white-space: pre-wrap;
+      font-size: 10pt;
+      line-height: 1.6;
+    }
+
+    /* ── Page break helpers ── */
+    .page-break { page-break-before: always; }
+
+    /* ── Footer disclaimer ── */
+    .disclaimer {
+      margin-top: 32px;
+      padding: 10px 14px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      font-size: 8.5pt;
+      color: #666;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover Header -->
+  <div class="cover-header">
+    <div class="logo-placeholder">Coach Logo</div>
+    <div class="report-title">
+      <h1>Fitness Assessment Report</h1>
+      <div class="report-date">Generated: {{ report.generated_at.strftime('%B %d, %Y') }}</div>
+    </div>
+  </div>
+
+  <!-- Client Information -->
+  <h2>Client Information</h2>
+  <div class="client-grid">
+    <div class="client-field"><label>Name</label><span>{{ report.client.name }}</span></div>
+    <div class="client-field"><label>Age</label><span>{{ report.client.age }}</span></div>
+    <div class="client-field"><label>Gender</label><span>{{ report.client.gender | title }}</span></div>
+    <div class="client-field">
+      <label>Goals</label>
+      <span>{{ report.client.goals | join(', ') | replace('_', ' ') | title if report.client.goals else 'Not specified' }}</span>
+    </div>
+    {% if report.client.notes %}
+    <div class="client-field" style="grid-column: span 2;">
+      <label>Notes</label><span>{{ report.client.notes }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Assessment Results -->
+  <h2>Assessment Results</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th>Category</th>
+        <th>Result</th>
+        <th>Rating</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for result in report.results %}
+      {% set badge_class = result.rating | lower | replace(' ', '-') %}
+      <tr>
+        <td>{{ result.test_name }}</td>
+        <td>{{ result.category | replace('_', ' ') | title }}</td>
+        <td>{{ result.raw_value }} {{ result.unit }}</td>
+        <td><span class="badge badge-{{ badge_class }}">{{ result.rating }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Assessment Summary -->
+  <h2>Assessment Summary</h2>
+  <div class="narrative">{{ report.llm_summary }}</div>
+
+  <!-- Workout Suggestions -->
+  <div class="page-break"></div>
+  <h2>Workout Suggestions</h2>
+  <p style="font-size:9pt; color:#666; margin-top:-6px;">
+    Draft for coach review — please modify as appropriate for this client.
+  </p>
+  <div class="narrative">{{ report.workout_suggestions }}</div>
+
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> This report is for informational and coaching purposes only. It does not constitute medical advice, diagnosis, or treatment. All exercise recommendations should be reviewed by a qualified fitness professional before being implemented. Clients with any health concerns should consult a qualified healthcare provider before beginning an exercise programme.
+  </div>
+
+</body>
+</html>
