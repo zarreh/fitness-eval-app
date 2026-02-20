@@ -28,6 +28,31 @@ _FALLBACK_WORKOUT = (
     "based on your professional expertise."
 )
 
+# Rating → numeric weight for computing an overall fitness level.
+_RATING_WEIGHTS: dict[str, int] = {
+    "Excellent": 5,
+    "Very Good": 4,
+    "Good": 3,
+    "Fair": 2,
+    "Poor": 1,
+}
+
+_CATEGORY_LABELS: dict[str, str] = {
+    "strength": "Strength",
+    "flexibility": "Flexibility",
+    "cardio": "Cardiovascular Fitness",
+    "body_comp": "Body Composition",
+}
+
+_GOAL_DISPLAY: dict[str, str] = {
+    "weight_loss": "Weight Loss",
+    "muscle_gain": "Muscle Gain",
+    "endurance": "Endurance",
+    "flexibility": "Flexibility",
+    "general_fitness": "General Fitness",
+    "sport_performance": "Sport Performance",
+}
+
 
 def get_llm() -> BaseChatModel:
     """Instantiate and return the configured LLM client.
@@ -68,17 +93,73 @@ def _load_prompt(filename: str) -> str:
     return (PROMPTS_DIR / filename).read_text(encoding="utf-8")
 
 
-def _format_results_table(results: list[MetricResult]) -> str:
-    """Format MetricResult list into a readable text table for the prompt.
+def _compute_overall_level(results: list[MetricResult]) -> str:
+    """Derive a one-line overall fitness description from all results.
+
+    Uses a simple weighted average of rating tiers. The returned string is
+    injected into prompts so the LLM can scale language and workout intensity
+    to match the client's actual fitness level.
 
     Args:
-        results: List of pre-calculated metric results.
+        results: Pre-calculated MetricResult objects.
 
     Returns:
-        Multi-line string with one result per line.
+        A human-readable overall fitness level description.
     """
-    return "\n".join(
-        f"- {r.test_name}: {r.raw_value} {r.unit} — Rating: {r.rating}" for r in results
+    if not results:
+        return "not yet assessed"
+    weights = [_RATING_WEIGHTS.get(r.rating, 3) for r in results]
+    avg = sum(weights) / len(weights)
+    if avg >= 4.5:
+        return "Excellent — performing at a high level across all areas"
+    elif avg >= 3.5:
+        return "Very Good — above average with minor areas to improve"
+    elif avg >= 2.5:
+        return "Good — solid baseline with clear room for improvement"
+    elif avg >= 1.5:
+        return "Fair — several areas need focused attention"
+    else:
+        return "Poor — all major areas need significant improvement"
+
+
+def _format_results_table(results: list[MetricResult]) -> str:
+    """Format MetricResult list grouped by category for prompt injection.
+
+    Args:
+        results: Pre-calculated MetricResult objects.
+
+    Returns:
+        Multi-line string with results grouped under category headers.
+    """
+    grouped: dict[str, list[MetricResult]] = {}
+    for r in results:
+        grouped.setdefault(r.category, []).append(r)
+
+    lines: list[str] = []
+    for cat_key, cat_results in grouped.items():
+        label = _CATEGORY_LABELS.get(cat_key, cat_key.replace("_", " ").title())
+        lines.append(f"[{label}]")
+        for r in cat_results:
+            lines.append(
+                f"  - {r.test_name}: {r.raw_value} {r.unit} — Rating: {r.rating}"
+            )
+        lines.append("")  # blank line between categories
+    return "\n".join(lines).strip()
+
+
+def _format_goals(goals: list[str]) -> str:
+    """Convert goal slugs to display labels, comma-separated.
+
+    Args:
+        goals: List of goal slugs (e.g. ["weight_loss", "endurance"]).
+
+    Returns:
+        Human-readable goal string.
+    """
+    return (
+        ", ".join(_GOAL_DISPLAY.get(g, g.replace("_", " ").title()) for g in goals)
+        if goals
+        else "General fitness"
     )
 
 
@@ -108,7 +189,8 @@ def generate_coach_summary(
             client_name=client.name,
             client_age=client.age,
             client_gender=client.gender,
-            goals=", ".join(client.goals) if client.goals else "General fitness",
+            goals=_format_goals(client.goals),
+            overall_level=_compute_overall_level(results),
             results_table=_format_results_table(results),
             coach_notes=coach_notes or client.notes or "None provided",
         )
@@ -145,7 +227,8 @@ def generate_workout_suggestions(
             client_name=client.name,
             client_age=client.age,
             client_gender=client.gender,
-            goals=", ".join(client.goals) if client.goals else "General fitness",
+            goals=_format_goals(client.goals),
+            overall_level=_compute_overall_level(results),
             results_table=_format_results_table(results),
         )
 

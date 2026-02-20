@@ -5,25 +5,32 @@ CLIENT PROFILE:
 - Age: {client_age}
 - Gender: {client_gender}
 - Goals: {goals}
+- Overall fitness level: {overall_level}
 
 ASSESSMENT RESULTS (pre-calculated — do not recalculate):
 {results_table}
 
+INTENSITY GUIDANCE based on overall fitness level:
+- Excellent / Very Good: moderate-to-high intensity, challenge the client, include progression targets
+- Good: moderate intensity, build consistency before adding load or complexity
+- Fair: low-to-moderate intensity, prioritize form and habit formation over performance
+- Poor: low intensity, emphasize accessibility and small achievable milestones
+
 Draft a weekly workout plan with the following structure:
 
 ## Recommended Training Frequency
-Suggest days per week and approximate session duration based on the client's goals and current fitness level.
+Suggest days per week and approximate session duration. Scale the recommendation to the client's overall fitness level and goals — a beginner needs recovery time; a fit client can handle more frequency.
 
 ## Warm-Up (5-10 min)
-A brief, general warm-up routine suitable for this client.
+A brief, general warm-up routine suitable for this client's age and fitness level.
 
 ## Main Workout
-Organized by the client's primary goals. Directly address the areas for improvement identified in the assessment. Include exercise names, sets, reps or duration, and rest periods. Keep it realistic for the client's current fitness level.
+Organized by the client's primary goals: {goals}. Directly address the areas where the assessment showed Fair or Poor ratings. Include exercise names, sets, reps or duration, and rest periods. Scale intensity to the overall fitness level using the guidance above. If body composition results (BMI or Waist-to-Hip Ratio) were assessed, include exercises that align with those goals.
 
 ## Cool-Down & Flexibility (5-10 min)
-A brief cool-down and stretching routine, with extra attention to any flexibility gaps shown in the assessment.
+A brief cool-down and stretching routine. Give extra attention to any flexibility gaps shown in the assessment results.
 
 ## Notes for the Coach
-Any specific considerations or progressions the coach should be aware of when implementing this plan.
+Any specific progressions, scaling options, or watchpoints the coach should be aware of when implementing this plan. If the client has conflicting goals, suggest how the coach might prioritize or periodize them.
 
 Important: This is a draft for the coach's professional review and modification. Do not recommend supplements, medications, or make medical claims.

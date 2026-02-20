@@ -1,0 +1,150 @@
+[
+  {
+    "_description": "All Excellent — high-performing male athlete, sport performance focus",
+    "request": {
+      "client": {
+        "name": "Marcus Rivera",
+        "age": 28,
+        "gender": "male",
+        "goals": ["sport_performance", "muscle_gain"],
+        "notes": "Competitive amateur triathlete. Preparing for an Olympic-distance race in 3 months.",
+        "height_cm": 181,
+        "weight_kg": 78,
+        "waist_cm": 82,
+        "hip_cm": 98
+      },
+      "tests": {
+        "pushup": 42,
+        "wall_sit": 130,
+        "plank": 180,
+        "sit_and_reach": 44,
+        "zipper": 8,
+        "step_test": 62
+      }
+    },
+    "_expected_overall_level": "Excellent — performing at a high level across all areas",
+    "_key_assertions": [
+      "Acknowledges high performance without implying weaknesses",
+      "Strengths section is substantive (not placeholder)",
+      "Improvement section framed as 'Maintaining Your Edge'",
+      "Workout intensity: moderate-to-high, includes progression targets"
+    ]
+  },
+  {
+    "_description": "All Poor — deconditioned female, weight loss + general fitness goals",
+    "request": {
+      "client": {
+        "name": "Sandra Mitchell",
+        "age": 52,
+        "gender": "female",
+        "goals": ["weight_loss", "general_fitness"],
+        "notes": "Sedentary office job. No regular exercise for 5+ years. Motivated to make a change.",
+        "height_cm": 163,
+        "weight_kg": 91,
+        "waist_cm": 98,
+        "hip_cm": 108
+      },
+      "tests": {
+        "pushup": 3,
+        "wall_sit": 15,
+        "plank": 12,
+        "sit_and_reach": 10,
+        "zipper": -12,
+        "step_test": 118
+      }
+    },
+    "_expected_overall_level": "Poor — all major areas need significant improvement",
+    "_key_assertions": [
+      "Tone is empathetic and encouraging, not discouraging",
+      "Strengths section reframed as 'Early Wins to Build On'",
+      "Workout intensity: low, habit-formation focus",
+      "No medical claims or diagnoses about obesity/sedentary risk"
+    ]
+  },
+  {
+    "_description": "Mixed results — strong cardiovascular / poor strength and flexibility, endurance goal",
+    "request": {
+      "client": {
+        "name": "Priya Sharma",
+        "age": 35,
+        "gender": "female",
+        "goals": ["endurance", "flexibility"],
+        "notes": "Regular runner (5K, 3x/week) but avoids strength training.",
+        "height_cm": 165,
+        "weight_kg": 62,
+        "waist_cm": 72,
+        "hip_cm": 93
+      },
+      "tests": {
+        "pushup": 8,
+        "wall_sit": 30,
+        "plank": 35,
+        "sit_and_reach": 18,
+        "zipper": -4,
+        "step_test": 71
+      }
+    },
+    "_expected_overall_level": "Fair — several areas need focused attention",
+    "_key_assertions": [
+      "Cardiovascular strength acknowledged as a genuine asset",
+      "Strength and flexibility gaps connected to injury risk for runners",
+      "Workout plan includes resistance training alongside cardio",
+      "Flexibility section references sit-and-reach and zipper results"
+    ]
+  },
+  {
+    "_description": "Conflicting goals — weight loss + muscle gain, middle-aged male, average baseline",
+    "request": {
+      "client": {
+        "name": "David Chen",
+        "age": 44,
+        "gender": "male",
+        "goals": ["weight_loss", "muscle_gain"],
+        "notes": "Former gym-goer, returning after 4-year break. Desk job, high stress.",
+        "height_cm": 175,
+        "weight_kg": 92,
+        "waist_cm": 96,
+        "hip_cm": 103
+      },
+      "tests": {
+        "pushup": 18,
+        "wall_sit": 55,
+        "plank": 60,
+        "sit_and_reach": 26,
+        "zipper": -2,
+        "step_test": 88
+      }
+    },
+    "_expected_overall_level": "Good — solid baseline with clear room for improvement",
+    "_key_assertions": [
+      "Both goals acknowledged without dismissing either",
+      "Suggestion to discuss goal prioritization with coach/client",
+      "Workout plan addresses body composition via compound movements",
+      "Tone references returning athlete baseline, not complete beginner"
+    ]
+  },
+  {
+    "_description": "Partial assessment — only body composition computed (no manual tests), older female",
+    "request": {
+      "client": {
+        "name": "Eleanor Hayes",
+        "age": 67,
+        "gender": "female",
+        "goals": ["general_fitness", "flexibility"],
+        "notes": "Recent hip replacement. Cleared for low-impact exercise only.",
+        "height_cm": 159,
+        "weight_kg": 68,
+        "waist_cm": 86,
+        "hip_cm": 102
+      },
+      "tests": {}
+    },
+    "_expected_overall_level": "Good — solid baseline with clear room for improvement",
+    "_key_assertions": [
+      "Analysis limited to BMI and WHR results only — no invented data",
+      "Coach notes about hip replacement acknowledged",
+      "Workout plan is explicitly low-impact throughout",
+      "No medical advice about the hip replacement itself"
+    ]
+  }
+]
