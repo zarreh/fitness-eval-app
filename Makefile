@@ -1,7 +1,7 @@
 .PHONY: install install-backend install-frontend \
         backend frontend \
         test test-v lint format typecheck check \
-        docker-up docker-up-d docker-down \
+        docker-up docker-up-d docker-down docker-pull-model docker-logs \
         env clean
 
 BACKEND  := backend
@@ -71,6 +71,12 @@ docker-up-d:                                ## Build and start all services (det
 
 docker-down:                                ## Stop all services
 	docker compose down
+
+docker-pull-model:                          ## Pull llama3.2 into the running Ollama container (first run)
+	docker compose exec ollama ollama pull llama3.2
+
+docker-logs:                                ## Follow logs for all services
+	docker compose logs -f
 
 # ── Housekeeping ──────────────────────────────────────────────────────────────
 

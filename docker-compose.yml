@@ -1,0 +1,96 @@
+# ── Fitness Evaluation App — Docker Compose ────────────────────────────────────
+#
+# Quick start:
+#   1. cp .env.example backend/.env          # create the env file
+#   2. docker compose up --build             # build images and start all services
+#   3. docker compose exec ollama ollama pull llama3.2   # pull the LLM model (first run only)
+#
+# Switch to OpenAI in backend/.env:
+#   LLM_PROVIDER=openai
+#   LLM_MODEL=gpt-4o
+#   OPENAI_API_KEY=sk-...
+# Then `docker compose restart backend` — no rebuild needed.
+#
+# Services:
+#   backend  → http://localhost:8000   (FastAPI + WeasyPrint)
+#   frontend → http://localhost:8501   (Streamlit)
+#   ollama   → http://localhost:11434  (local LLM, optional in OpenAI mode)
+
+services:
+
+  # ── FastAPI backend ───────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      # Load LLM_PROVIDER, LLM_MODEL, OPENAI_API_KEY, etc. from backend/.env.
+      # The file is optional — Dockerfile ENV defaults apply when it is absent.
+      - path: backend/.env
+        required: false
+    environment:
+      # Always route Ollama calls to the ollama service, regardless of what
+      # backend/.env sets for OLLAMA_BASE_URL.
+      OLLAMA_BASE_URL: "http://ollama:11434"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ── Streamlit frontend ────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      # Point the frontend at the backend service by its internal hostname.
+      API_URL: "http://backend:8000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # ── Ollama (local LLM) ────────────────────────────────────────────────────────
+  # Not required when LLM_PROVIDER=openai.
+  # Models are persisted in the ollama_data volume across restarts.
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  # Persists downloaded Ollama models across container restarts and rebuilds.
+  ollama_data:
