@@ -57,6 +57,8 @@ class ReportRequest(BaseModel):
     client: ClientProfile
     results: list[MetricResult]
     coach_notes: Optional[str] = None
+    coach_name: Optional[str] = None
+    organization: Optional[str] = None
 
 
 class ReportResponse(BaseModel):
@@ -67,6 +69,8 @@ class ReportResponse(BaseModel):
     llm_summary: str
     workout_suggestions: str
     generated_at: datetime
+    coach_name: Optional[str] = None
+    organization: Optional[str] = None
 
 
 class TestInfo(BaseModel):

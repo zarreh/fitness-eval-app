@@ -90,6 +90,8 @@ async def generate_report(request: ReportRequest) -> ReportResponse:
         llm_summary=llm_summary,
         workout_suggestions=workout_suggestions,
         generated_at=datetime.now(tz=timezone.utc),
+        coach_name=request.coach_name,
+        organization=request.organization,
     )
 
 

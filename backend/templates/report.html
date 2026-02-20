@@ -4,197 +4,527 @@
   <meta charset="UTF-8" />
   <title>Fitness Assessment Report — {{ report.client.name }}</title>
   <style>
-    /* ── Page setup ── */
+    /* ══════════════════════════════════════════════════════
+       CSS VARIABLES — edit here to white-label the report
+       ══════════════════════════════════════════════════════ */
+    :root {
+      --primary:          #1a1a2e;
+      --primary-light:    #16213e;
+      --accent:           #0f3460;
+      --text:             #222222;
+      --text-light:       #555555;
+      --text-muted:       #888888;
+      --bg-light:         #f7f8fc;
+      --bg-white:         #ffffff;
+      --border:           #e0e0e0;
+      --border-light:     #eeeeee;
+
+      /* Rating palette — green (excellent) → red (poor) */
+      --c-excellent:      #155724;   --bg-excellent:     #d4edda;
+      --c-very-good:      #0b5226;   --bg-very-good:     #b8e8c8;
+      --c-good:           #1e6b1e;   --bg-good:          #c8f0c8;
+      --c-fair:           #7d5a00;   --bg-fair:          #fff3cd;
+      --c-poor:           #721c24;   --bg-poor:          #f8d7da;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       PAGE SETUP
+       ══════════════════════════════════════════════════════ */
     @page {
       size: A4;
-      margin: 20mm 18mm 20mm 18mm;
+      margin: 20mm 18mm 24mm 18mm;
+
       @top-right {
-        content: "{{ report.client.name }} — Fitness Assessment";
-        font-size: 9pt;
-        color: #888;
+        content: "{{ report.client.name }}  ·  Fitness Assessment";
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 8pt;
+        color: var(--text-muted);
       }
-      @bottom-center {
+      @bottom-left {
+        content: "{{ report.generated_at.strftime('%B %d, %Y') }}";
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 8pt;
+        color: var(--text-muted);
+      }
+      @bottom-right {
         content: "Page " counter(page) " of " counter(pages);
-        font-size: 9pt;
-        color: #888;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 8pt;
+        color: var(--text-muted);
       }
     }
 
-    /* ── Base typography ── */
+    /* Suppress running header/footer on the cover page */
+    @page :first {
+      @top-right  { content: ""; }
+      @bottom-left  { content: ""; }
+      @bottom-right { content: ""; }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       BASE TYPOGRAPHY
+       ══════════════════════════════════════════════════════ */
     body {
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
       font-size: 10.5pt;
       line-height: 1.55;
-      color: #222;
+      color: var(--text);
       margin: 0;
     }
 
-    h1 { font-size: 22pt; margin: 0 0 4px 0; color: #1a1a2e; }
-    h2 { font-size: 13pt; color: #1a1a2e; border-bottom: 2px solid #e0e0e0; padding-bottom: 4px; margin-top: 22px; }
-    h3 { font-size: 11pt; color: #333; margin-bottom: 4px; }
-
-    /* ── Cover header ── */
-    .cover-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 3px solid #1a1a2e;
+    h2 {
+      font-size: 12.5pt;
+      font-weight: 700;
+      color: var(--primary);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 5px;
+      margin-top: 24px;
+      margin-bottom: 12px;
     }
-    .logo-placeholder {
-      width: 120px;
-      height: 48px;
-      border: 2px dashed #ccc;
+
+    /* ══════════════════════════════════════════════════════
+       COVER PAGE
+       ══════════════════════════════════════════════════════ */
+    .cover-page {
+      min-height: 245mm;
       display: flex;
+      flex-direction: column;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    .cover-logo-area {
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+
+    .logo-placeholder {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #aaa;
-      font-size: 9pt;
+      width: 130px;
+      height: 50px;
+      border: 2px dashed var(--border);
+      color: #bbb;
+      font-size: 8.5pt;
       border-radius: 4px;
     }
-    .report-title { text-align: right; }
-    .report-date { color: #666; font-size: 9.5pt; margin-top: 2px; }
 
-    /* ── Client info grid ── */
+    .cover-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 18mm 0 12mm 0;
+    }
+
+    .cover-eyebrow {
+      font-size: 8.5pt;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .cover-title {
+      font-size: 28pt;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.15;
+      margin-bottom: 4px;
+    }
+
+    .cover-rule {
+      width: 55%;
+      height: 4px;
+      background: var(--primary);
+      border: none;
+      margin: 16px 0 22px 0;
+    }
+
+    .cover-client-name {
+      font-size: 18pt;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .cover-meta {
+      font-size: 10.5pt;
+      color: var(--text-light);
+      line-height: 1.9;
+    }
+
+    .cover-footer {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      font-size: 9pt;
+      color: var(--text-muted);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       CLIENT INFO GRID
+       ══════════════════════════════════════════════════════ */
     .client-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px 24px;
-      background: #f7f8fc;
+      gap: 10px 28px;
+      background: var(--bg-light);
       border-radius: 6px;
       padding: 14px 18px;
+    }
+
+    .client-field label {
+      display: block;
+      font-size: 8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-light);
+      margin-bottom: 2px;
+    }
+
+    .client-field span {
+      font-size: 10.5pt;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       CATEGORY OVERVIEW CARDS
+       ══════════════════════════════════════════════════════ */
+    .category-cards {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .category-card {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--primary);
+      border-radius: 0 0 6px 6px;
+      padding: 10px 12px 12px 12px;
+      background: var(--bg-white);
+    }
+
+    .cat-label {
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-light);
+      margin-bottom: 6px;
+    }
+
+    .cat-count {
+      font-size: 8pt;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       RATING BADGES
+       ══════════════════════════════════════════════════════ */
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 12px;
+      font-size: 8.5pt;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+
+    .badge-excellent  { background: var(--bg-excellent);  color: var(--c-excellent); }
+    .badge-very-good  { background: var(--bg-very-good);  color: var(--c-very-good); }
+    .badge-good       { background: var(--bg-good);       color: var(--c-good); }
+    .badge-fair       { background: var(--bg-fair);       color: var(--c-fair); }
+    .badge-poor       { background: var(--bg-poor);       color: var(--c-poor); }
+
+    /* ══════════════════════════════════════════════════════
+       DETAILED RESULTS TABLE
+       ══════════════════════════════════════════════════════ */
+    .category-section {
+      margin-top: 18px;
+      page-break-inside: avoid;
+    }
+
+    .category-heading {
+      font-size: 9pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-light);
       margin-bottom: 4px;
     }
-    .client-field label { font-weight: bold; font-size: 9pt; color: #555; display: block; }
-    .client-field span  { font-size: 10.5pt; }
 
-    /* ── Results table ── */
+    .category-rule {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 0 0 0;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      margin-top: 6px;
       font-size: 10pt;
     }
+
     thead th {
-      background: #1a1a2e;
+      background: var(--primary);
       color: #fff;
       text-align: left;
-      padding: 8px 10px;
+      padding: 7px 10px;
       font-weight: 600;
-    }
-    tbody tr:nth-child(even) { background: #f7f8fc; }
-    tbody td { padding: 7px 10px; border-bottom: 1px solid #eee; }
-
-    /* ── Rating badges ── */
-    .badge {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 12px;
       font-size: 9pt;
-      font-weight: 700;
-      letter-spacing: 0.3px;
     }
-    .badge-excellent    { background: #d4edda; color: #155724; }
-    .badge-good         { background: #c8f0c8; color: #1e6b1e; }
-    .badge-average      { background: #fff3cd; color: #856404; }
-    .badge-below-average{ background: #fde8d0; color: #8a3c00; }
-    .badge-poor         { background: #f8d7da; color: #721c24; }
 
-    /* ── Narrative sections ── */
+    tbody tr:nth-child(even) { background: var(--bg-light); }
+    tbody td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       LLM NARRATIVE (markdown-rendered)
+       ══════════════════════════════════════════════════════ */
     .narrative {
-      background: #fafafa;
-      border-left: 4px solid #1a1a2e;
-      padding: 12px 16px;
+      background: var(--bg-light);
+      border-left: 4px solid var(--primary);
+      padding: 14px 18px;
       margin-top: 10px;
-      border-radius: 0 4px 4px 0;
-      white-space: pre-wrap;
+      border-radius: 0 6px 6px 0;
       font-size: 10pt;
-      line-height: 1.6;
+      line-height: 1.65;
     }
 
-    /* ── Page break helpers ── */
-    .page-break { page-break-before: always; }
+    .narrative h2 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: var(--primary);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 3px;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
 
-    /* ── Footer disclaimer ── */
+    .narrative h2:first-child {
+      margin-top: 0;
+    }
+
+    .narrative h3 {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: var(--primary-light);
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    .narrative ul,
+    .narrative ol {
+      margin: 6px 0 10px 20px;
+      padding: 0;
+    }
+
+    .narrative li {
+      margin-bottom: 5px;
+    }
+
+    .narrative p {
+      margin: 6px 0 10px 0;
+    }
+
+    .narrative strong {
+      color: var(--primary);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       PAGE BREAKS & LAYOUT HELPERS
+       ══════════════════════════════════════════════════════ */
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    .coach-note {
+      font-size: 8.5pt;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: -6px;
+      margin-bottom: 10px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       DISCLAIMER
+       ══════════════════════════════════════════════════════ */
     .disclaimer {
-      margin-top: 32px;
-      padding: 10px 14px;
-      background: #f0f0f0;
+      margin-top: 36px;
+      padding: 12px 16px;
+      background: var(--bg-light);
+      border: 1px solid var(--border);
       border-radius: 4px;
       font-size: 8.5pt;
-      color: #666;
-      line-height: 1.4;
+      color: var(--text-light);
+      line-height: 1.5;
     }
   </style>
 </head>
 <body>
 
-  <!-- Cover Header -->
-  <div class="cover-header">
-    <div class="logo-placeholder">Coach Logo</div>
-    <div class="report-title">
-      <h1>Fitness Assessment Report</h1>
-      <div class="report-date">Generated: {{ report.generated_at.strftime('%B %d, %Y') }}</div>
-    </div>
-  </div>
+  <!-- ══════════════════════════════════════════════════════
+       COVER PAGE
+       ══════════════════════════════════════════════════════ -->
+  <div class="cover-page">
 
-  <!-- Client Information -->
+    <div class="cover-logo-area">
+      <div class="logo-placeholder">Coach Logo</div>
+    </div>
+
+    <div class="cover-body">
+      <div class="cover-eyebrow">Fitness Evaluation</div>
+      <div class="cover-title">Assessment<br>Report</div>
+      <hr class="cover-rule">
+      <div class="cover-client-name">{{ report.client.name }}</div>
+      <div class="cover-meta">
+        Assessment Date: {{ report.generated_at.strftime('%B %d, %Y') }}<br>
+        Age: {{ report.client.age }}&nbsp;&nbsp;·&nbsp;&nbsp;Gender: {{ report.client.gender | title }}<br>
+        Goals: {{ report.client.goals | join(', ') | replace('_', ' ') | title if report.client.goals else 'Not specified' }}
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      {% if report.coach_name or report.organization %}
+        {% if report.coach_name %}Prepared by: <strong>{{ report.coach_name }}</strong>{% endif %}
+        {% if report.coach_name and report.organization %}&nbsp;&nbsp;·&nbsp;&nbsp;{% endif %}
+        {% if report.organization %}{{ report.organization }}{% endif %}
+      {% else %}
+        Confidential — For Coach Review
+      {% endif %}
+    </div>
+
+  </div><!-- end cover-page -->
+
+
+  <!-- ══════════════════════════════════════════════════════
+       CLIENT INFORMATION
+       ══════════════════════════════════════════════════════ -->
   <h2>Client Information</h2>
   <div class="client-grid">
-    <div class="client-field"><label>Name</label><span>{{ report.client.name }}</span></div>
-    <div class="client-field"><label>Age</label><span>{{ report.client.age }}</span></div>
-    <div class="client-field"><label>Gender</label><span>{{ report.client.gender | title }}</span></div>
+    <div class="client-field">
+      <label>Name</label>
+      <span>{{ report.client.name }}</span>
+    </div>
+    <div class="client-field">
+      <label>Age</label>
+      <span>{{ report.client.age }}</span>
+    </div>
+    <div class="client-field">
+      <label>Gender</label>
+      <span>{{ report.client.gender | title }}</span>
+    </div>
     <div class="client-field">
       <label>Goals</label>
       <span>{{ report.client.goals | join(', ') | replace('_', ' ') | title if report.client.goals else 'Not specified' }}</span>
     </div>
+    {% if report.client.height_cm and report.client.weight_kg %}
+    <div class="client-field">
+      <label>Height / Weight</label>
+      <span>{{ report.client.height_cm | fmt }} cm&nbsp;&nbsp;/&nbsp;&nbsp;{{ report.client.weight_kg | fmt }} kg</span>
+    </div>
+    {% endif %}
     {% if report.client.notes %}
     <div class="client-field" style="grid-column: span 2;">
-      <label>Notes</label><span>{{ report.client.notes }}</span>
+      <label>Coach Notes</label>
+      <span>{{ report.client.notes }}</span>
     </div>
     {% endif %}
   </div>
 
-  <!-- Assessment Results -->
-  <h2>Assessment Results</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Test</th>
-        <th>Category</th>
-        <th>Result</th>
-        <th>Rating</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for result in report.results %}
-      {% set badge_class = result.rating | lower | replace(' ', '-') %}
-      <tr>
-        <td>{{ result.test_name }}</td>
-        <td>{{ result.category | replace('_', ' ') | title }}</td>
-        <td>{{ result.raw_value }} {{ result.unit }}</td>
-        <td><span class="badge badge-{{ badge_class }}">{{ result.rating }}</span></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 
-  <!-- Assessment Summary -->
-  <h2>Assessment Summary</h2>
-  <div class="narrative">{{ report.llm_summary }}</div>
+  <!-- ══════════════════════════════════════════════════════
+       RESULTS OVERVIEW CARDS
+       ══════════════════════════════════════════════════════ -->
+  {% if category_summary %}
+  <h2>Results Overview</h2>
+  <div class="category-cards">
+    {% for cat in category_summary %}
+    {% set badge_class = cat.worst_rating | lower | replace(' ', '-') %}
+    <div class="category-card">
+      <div class="cat-label">{{ cat.label }}</div>
+      <div class="cat-count">{{ cat.count }} test{% if cat.count != 1 %}s{% endif %}</div>
+      <span class="badge badge-{{ badge_class }}">{{ cat.worst_rating }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
-  <!-- Workout Suggestions -->
+
+  <!-- ══════════════════════════════════════════════════════
+       DETAILED RESULTS (grouped by category)
+       ══════════════════════════════════════════════════════ -->
+  <h2>Detailed Assessment Results</h2>
+
+  {% for cat_key, cat_label, cat_results in category_groups %}
+  <div class="category-section">
+    <div class="category-heading">{{ cat_label }}</div>
+    <hr class="category-rule">
+    <table>
+      <thead>
+        <tr>
+          <th>Test</th>
+          <th>Result</th>
+          <th>Rating</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for result in cat_results %}
+        {% set badge_class = result.rating | lower | replace(' ', '-') %}
+        <tr>
+          <td>{{ result.test_name }}</td>
+          <td>{{ result.raw_value | fmt }}&nbsp;{{ result.unit }}</td>
+          <td><span class="badge badge-{{ badge_class }}">{{ result.rating }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+
+
+  <!-- ══════════════════════════════════════════════════════
+       ASSESSMENT SUMMARY  (LLM — rendered markdown)
+       ══════════════════════════════════════════════════════ -->
   <div class="page-break"></div>
-  <h2>Workout Suggestions</h2>
-  <p style="font-size:9pt; color:#666; margin-top:-6px;">
-    Draft for coach review — please modify as appropriate for this client.
-  </p>
-  <div class="narrative">{{ report.workout_suggestions }}</div>
+  <h2>Assessment Summary</h2>
+  <div class="narrative">
+    {{ report.llm_summary | md }}
+  </div>
 
-  <!-- Disclaimer -->
+
+  <!-- ══════════════════════════════════════════════════════
+       RECOMMENDED WORKOUT PLAN  (LLM — rendered markdown)
+       ══════════════════════════════════════════════════════ -->
+  <div class="page-break"></div>
+  <h2>Recommended Workout Plan</h2>
+  <p class="coach-note">Draft for coach review — please adapt as appropriate for this client.</p>
+  <div class="narrative">
+    {{ report.workout_suggestions | md }}
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       DISCLAIMER
+       ══════════════════════════════════════════════════════ -->
   <div class="disclaimer">
-    <strong>Disclaimer:</strong> This report is for informational and coaching purposes only. It does not constitute medical advice, diagnosis, or treatment. All exercise recommendations should be reviewed by a qualified fitness professional before being implemented. Clients with any health concerns should consult a qualified healthcare provider before beginning an exercise programme.
+    <strong>Disclaimer:</strong> This report is for informational and coaching purposes only.
+    It does not constitute medical advice, diagnosis, or treatment. All exercise recommendations
+    should be reviewed by a qualified fitness professional before implementation. Clients with
+    existing health conditions should consult a qualified healthcare provider before beginning
+    any exercise programme. This report was generated with AI assistance and is intended as a
+    starting point for the coach's professional review and modification.
   </div>
 
 </body>
