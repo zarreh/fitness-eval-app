@@ -3,7 +3,13 @@
 import httpx
 import streamlit as st
 
+from utils import rating_badge_html, show_client_sidebar, show_step_indicator
+
 st.set_page_config(page_title="Assessment", layout="wide")
+
+show_step_indicator(2)
+show_client_sidebar()
+
 st.title("Assessment Input")
 
 API_URL = st.session_state.get("api_url", "http://localhost:8000")
@@ -11,6 +17,7 @@ API_URL = st.session_state.get("api_url", "http://localhost:8000")
 # Guard: require profile first.
 if "client_profile" not in st.session_state:
     st.warning("Please complete the **Client Profile** page first.")
+    st.page_link("pages/1_client_profile.py", label="← Go to Client Profile")
     st.stop()
 
 client = st.session_state["client_profile"]
@@ -19,8 +26,15 @@ st.markdown(
     f"({client['age']} y/o {client['gender']})."
 )
 
+# Allow coach to reset results and re-enter scores.
+if "calculation" in st.session_state:
+    if st.button("↺ Reset & Re-enter Scores"):
+        for key in ("calculation", "report", "pdf_bytes"):
+            st.session_state.pop(key, None)
+        st.rerun()
 
-# ── Fetch test battery from API ──────────────────────────────────────────────
+
+# ── Fetch test battery from API ───────────────────────────────────────────────
 @st.cache_data(ttl=300)
 def fetch_test_battery(api_url: str) -> list[dict]:
     """Retrieve available tests from the backend."""
@@ -28,35 +42,37 @@ def fetch_test_battery(api_url: str) -> list[dict]:
         response = httpx.get(f"{api_url}/tests/battery", timeout=5.0)
         response.raise_for_status()
         return response.json()
+    except httpx.ConnectError:
+        st.error(
+            "Cannot reach the backend. Make sure the API server is running on "
+            f"`{api_url}` and try again."
+        )
+        return []
     except Exception as exc:
-        st.error(f"Could not load test battery from API: {exc}")
+        st.error(f"Could not load test battery: {exc}")
         return []
 
 
 battery = fetch_test_battery(API_URL)
-
 if not battery:
     st.stop()
 
-# Separate computed tests (BMI, WHR) from manual-input tests.
 manual_tests = [t for t in battery if not t.get("computed", False)]
 computed_tests = [t for t in battery if t.get("computed", False)]
 
-# Group manual tests by category.
 CATEGORY_LABELS = {
-    "strength": "Strength",
+    "strength":    "Strength",
     "flexibility": "Flexibility",
-    "cardio": "Cardiovascular",
-    "body_comp": "Body Composition",
+    "cardio":      "Cardiovascular",
+    "body_comp":   "Body Composition",
 }
 
 categories: dict[str, list[dict]] = {}
 for test in manual_tests:
-    cat = test["category"]
-    categories.setdefault(cat, []).append(test)
+    categories.setdefault(test["category"], []).append(test)
 
 
-# ── Test input form ──────────────────────────────────────────────────────────
+# ── Test input form ───────────────────────────────────────────────────────────
 test_values: dict[str, float] = {}
 
 with st.form("assessment_form"):
@@ -71,7 +87,6 @@ with st.form("assessment_form"):
         for idx, test in enumerate(tests_in_cat):
             test_id = test["test_id"]
             label = f"{test['test_name']}\n({test['unit']})"
-
             with cols[idx % 3]:
                 value = st.number_input(
                     label=label,
@@ -82,7 +97,7 @@ with st.form("assessment_form"):
                 )
                 test_values[test_id] = value
 
-    # Show computed test notice if body measurements are present.
+    # Body composition notice.
     if computed_tests:
         st.divider()
         st.subheader("Body Composition (auto-computed)")
@@ -91,30 +106,28 @@ with st.form("assessment_form"):
 
         if has_bmi:
             st.info(
-                "BMI will be computed automatically from height "
-                f"({client['height_cm']} cm) and weight ({client['weight_kg']} kg)."
+                f"BMI will be computed from height ({client['height_cm']} cm) "
+                f"and weight ({client['weight_kg']} kg)."
             )
         else:
-            st.caption("BMI: add height and weight in the Client Profile to enable.")
+            st.caption("BMI: add height and weight in Client Profile to enable.")
 
         if has_whr:
             st.info(
-                "Waist-to-Hip Ratio will be computed automatically from waist "
-                f"({client['waist_cm']} cm) and hip ({client['hip_cm']} cm)."
+                f"Waist-to-Hip Ratio will be computed from waist ({client['waist_cm']} cm) "
+                f"and hip ({client['hip_cm']} cm)."
             )
         else:
             st.caption(
-                "Waist-to-Hip Ratio: add waist and hip measurements in the Client Profile to enable."
+                "Waist-to-Hip Ratio: add waist and hip in Client Profile to enable."
             )
 
     submitted = st.form_submit_button("Calculate Ratings", type="primary")
 
 
-# ── Call /assess/calculate ───────────────────────────────────────────────────
+# ── Call /assess/calculate ────────────────────────────────────────────────────
 if submitted:
-    # Filter out tests the coach left at 0 (not performed).
     active_tests = {k: v for k, v in test_values.items() if v > 0}
-
     has_bmi = client.get("height_cm") and client.get("weight_kg")
     has_whr = client.get("waist_cm") and client.get("hip_cm")
 
@@ -124,7 +137,7 @@ if submitted:
 
     payload = {"client": client, "tests": active_tests}
 
-    with st.spinner("Calculating ratings..."):
+    with st.spinner("Calculating ratings…"):
         try:
             response = httpx.post(
                 f"{API_URL}/assess/calculate",
@@ -133,35 +146,65 @@ if submitted:
             )
             response.raise_for_status()
             calculation = response.json()
+        except httpx.ConnectError:
+            st.error(
+                f"Cannot reach the backend at `{API_URL}`. "
+                "Make sure the API server is running."
+            )
+            st.stop()
         except httpx.HTTPStatusError as exc:
             detail = exc.response.json().get("detail", str(exc))
             st.error(f"Calculation error: {detail}")
             st.stop()
         except Exception as exc:
-            st.error(f"Could not reach the backend: {exc}")
+            st.error(f"Unexpected error: {exc}")
             st.stop()
 
     st.session_state["calculation"] = calculation
+    # Clear any stale report when scores are recalculated.
+    for key in ("report", "pdf_bytes"):
+        st.session_state.pop(key, None)
     st.success("Ratings calculated. Proceed to the **Report** page.")
 
 
-# ── Display results if available ─────────────────────────────────────────────
+# ── Results dashboard ─────────────────────────────────────────────────────────
 if "calculation" in st.session_state:
-    results = st.session_state["calculation"]["results"]
+    results: list[dict] = st.session_state["calculation"]["results"]
+
     st.divider()
     st.subheader("Results")
 
-    RATING_COLORS = {
-        "Excellent": "green",
-        "Very Good": "green",
-        "Good": "orange",
-        "Fair": "red",
-        "Poor": "red",
-    }
-
+    # Group by category in canonical order.
+    cat_order = ["strength", "flexibility", "cardio", "body_comp"]
+    grouped: dict[str, list[dict]] = {}
     for r in results:
-        color = RATING_COLORS.get(r["rating"], "grey")
-        st.markdown(
-            f"**{r['test_name']}**: {r['raw_value']} {r['unit']} — "
-            f":{color}[**{r['rating']}**]"
-        )
+        grouped.setdefault(r["category"], []).append(r)
+
+    for cat_key in cat_order:
+        cat_results = grouped.get(cat_key, [])
+        if not cat_results:
+            continue
+
+        st.markdown(f"**{CATEGORY_LABELS.get(cat_key, cat_key)}**")
+        cols = st.columns(min(len(cat_results), 4))
+
+        for col, r in zip(cols, cat_results):
+            badge = rating_badge_html(r["rating"])
+            raw = r["raw_value"]
+            value_str = str(int(raw)) if raw == int(raw) else f"{raw:.1f}"
+            col.markdown(
+                f'<div style="border:1px solid #e0e0e0;border-radius:6px;'
+                f'padding:10px 12px;text-align:center;background:#fafafa;">'
+                f'<div style="font-size:0.8em;color:#555;margin-bottom:4px;">'
+                f'{r["test_name"]}</div>'
+                f'<div style="font-size:1.2em;font-weight:700;margin-bottom:6px;">'
+                f'{value_str}&nbsp;<span style="font-size:0.7em;color:#888;">'
+                f'{r["unit"]}</span></div>'
+                f"{badge}</div>",
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("<div style='margin-bottom:0.5rem'></div>", unsafe_allow_html=True)
+
+    st.divider()
+    st.page_link("pages/3_report.py", label="Continue to Report →")

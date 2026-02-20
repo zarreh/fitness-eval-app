@@ -17,15 +17,57 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Make API_URL available to all pages via session_state.
+# Initialise persistent session state keys on first load.
 if "api_url" not in st.session_state:
     st.session_state["api_url"] = API_URL
+if "client_list" not in st.session_state:
+    st.session_state["client_list"] = []
 
+# ── Landing page ──────────────────────────────────────────────────────────────
 st.title("Fitness Evaluation App")
 st.markdown(
-    "Use the sidebar to navigate: **Client Profile** → **Assessment** → **Report**"
+    "Generate professional fitness assessment reports in three steps."
 )
-st.info(
-    "Start by entering the client's profile in the **Client Profile** page, "
-    "then proceed to the Assessment page to input test scores."
-)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown(
+        """
+        #### 1 · Client Profile
+        Enter the client's name, age, gender, goals, and body measurements.
+        Body measurements enable auto-computed BMI and Waist-to-Hip Ratio.
+        """
+    )
+    st.page_link("pages/1_client_profile.py", label="Go to Client Profile →")
+
+with col2:
+    st.markdown(
+        """
+        #### 2 · Assessment
+        Input raw test scores. The logic engine looks up normative data and
+        returns a rating (Excellent → Poor) for each test instantly.
+        """
+    )
+    st.page_link("pages/2_assessment.py", label="Go to Assessment →")
+
+with col3:
+    st.markdown(
+        """
+        #### 3 · Report
+        Generate an LLM-powered narrative summary and personalised workout
+        plan, then download a polished PDF for the client.
+        """
+    )
+    st.page_link("pages/3_report.py", label="Go to Report →")
+
+# ── Active client banner ──────────────────────────────────────────────────────
+if "client_profile" in st.session_state:
+    p = st.session_state["client_profile"]
+    status_parts = [f"**Active client:** {p['name']}"]
+    if "calculation" in st.session_state:
+        n = len(st.session_state["calculation"]["results"])
+        status_parts.append(f"{n} test result(s) calculated")
+    if "report" in st.session_state:
+        status_parts.append("report generated")
+    st.info("  ·  ".join(status_parts))
