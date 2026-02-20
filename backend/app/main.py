@@ -26,7 +26,8 @@ app = FastAPI(
     title="Fitness Evaluation API",
     description=(
         "B2B fitness assessment platform. "
-        "Coach submits raw test data → ratings calculated → LLM generates narrative → PDF report."
+        "Coach submits raw test data → ratings calculated "
+        "→ LLM generates narrative → PDF report."
     ),
     version="0.1.0",
 )

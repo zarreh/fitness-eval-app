@@ -19,11 +19,13 @@ PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 _FALLBACK_SUMMARY = (
     "The LLM service is currently unavailable. "
-    "Please review the assessment results table above and consult your professional judgment."
+    "Please review the assessment results table above "
+    "and consult your professional judgment."
 )
 _FALLBACK_WORKOUT = (
     "The LLM service is currently unavailable. "
-    "Please use the assessment results to design a workout plan based on your professional expertise."
+    "Please use the assessment results to design a workout plan "
+    "based on your professional expertise."
 )
 
 
@@ -76,8 +78,7 @@ def _format_results_table(results: list[MetricResult]) -> str:
         Multi-line string with one result per line.
     """
     return "\n".join(
-        f"- {r.test_name}: {r.raw_value} {r.unit} — Rating: {r.rating}"
-        for r in results
+        f"- {r.test_name}: {r.raw_value} {r.unit} — Rating: {r.rating}" for r in results
     )
 
 

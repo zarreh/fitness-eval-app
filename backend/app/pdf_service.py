@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from weasyprint import HTML
+from weasyprint import HTML  # type: ignore[import-untyped]
 
 from app.models import ReportResponse
 
@@ -29,5 +29,7 @@ def render_report_pdf(report: ReportResponse) -> bytes:
 
     template = env.get_template("report.html")
     html_content = template.render(report=report)
-    pdf_bytes = HTML(string=html_content, base_url=str(TEMPLATES_DIR)).write_pdf()
-    return pdf_bytes  # type: ignore[return-value]
+    pdf_bytes: bytes = HTML(
+        string=html_content, base_url=str(TEMPLATES_DIR)
+    ).write_pdf()
+    return pdf_bytes

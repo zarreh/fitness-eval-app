@@ -13,11 +13,19 @@ class ClientProfile(BaseModel):
     goals: list[str]
     notes: Optional[str] = None
 
+    # Body measurements — optional; used to auto-compute BMI and WHR.
+    height_cm: Optional[float] = None
+    weight_kg: Optional[float] = None
+    waist_cm: Optional[float] = None
+    hip_cm: Optional[float] = None
+
 
 class AssessmentInput(BaseModel):
     """Raw test data submitted by the coach for calculation.
 
     The tests dict maps test_id to raw value, e.g. {"pushup": 25}.
+    BMI and WHR are computed automatically from ClientProfile body measurements
+    when the relevant fields are present — do not include them in tests.
     """
 
     client: ClientProfile
@@ -30,7 +38,7 @@ class MetricResult(BaseModel):
     test_name: str
     raw_value: float
     unit: str
-    rating: str  # "Excellent" | "Good" | "Average" | "Below Average" | "Poor"
+    rating: str  # "Excellent" | "Very Good" | "Good" | "Fair" | "Poor"
     percentile: Optional[float] = None
     category: str  # "strength" | "flexibility" | "cardio" | "body_comp"
     description: str
@@ -69,3 +77,4 @@ class TestInfo(BaseModel):
     category: str
     unit: str
     description: str
+    computed: bool = False  # True for tests derived from client measurements (BMI, WHR)

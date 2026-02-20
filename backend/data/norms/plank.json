@@ -1,0 +1,23 @@
+{
+  "test_name": "Forearm Plank Test",
+  "unit": "seconds",
+  "category": "strength",
+  "source": "General fitness assessment standards (ACSM provides no standardised plank norms; values represent commonly cited benchmarks)",
+  "protocol": "Maintain a straight line from head to heels on forearms and toes. Terminate when form breaks.",
+  "norms": {
+    "male": {
+      "20-29": { "excellent": 150, "very_good": 120, "good": 90, "fair": 60, "poor": 1 },
+      "30-39": { "excellent": 120, "very_good": 90,  "good": 75, "fair": 45, "poor": 1 },
+      "40-49": { "excellent": 100, "very_good": 75,  "good": 60, "fair": 30, "poor": 1 },
+      "50-59": { "excellent": 90,  "very_good": 60,  "good": 45, "fair": 20, "poor": 1 },
+      "60-69": { "excellent": 60,  "very_good": 45,  "good": 30, "fair": 15, "poor": 1 }
+    },
+    "female": {
+      "20-29": { "excellent": 120, "very_good": 90, "good": 60, "fair": 30, "poor": 1 },
+      "30-39": { "excellent": 90,  "very_good": 60, "good": 45, "fair": 20, "poor": 1 },
+      "40-49": { "excellent": 75,  "very_good": 55, "good": 40, "fair": 15, "poor": 1 },
+      "50-59": { "excellent": 60,  "very_good": 40, "good": 30, "fair": 10, "poor": 1 },
+      "60-69": { "excellent": 45,  "very_good": 30, "good": 20, "fair": 10, "poor": 1 }
+    }
+  }
+}

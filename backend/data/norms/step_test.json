@@ -1,0 +1,24 @@
+{
+  "test_name": "YMCA 3-Minute Step Test",
+  "unit": "bpm",
+  "category": "cardio",
+  "inverted": true,
+  "source": "YMCA Fitness Testing and Assessment Manual, 4th Edition (Golding et al.)",
+  "protocol": "Step on/off a 12-inch bench at 96 bpm (24 steps/min) for 3 minutes. Count pulse for 1 full minute immediately after stopping. Lower BPM indicates better cardiovascular fitness.",
+  "norms": {
+    "male": {
+      "20-29": { "excellent": 70, "very_good": 79, "good": 83, "fair": 89, "poor": 200 },
+      "30-39": { "excellent": 73, "very_good": 82, "good": 87, "fair": 93, "poor": 200 },
+      "40-49": { "excellent": 75, "very_good": 83, "good": 89, "fair": 96, "poor": 200 },
+      "50-59": { "excellent": 78, "very_good": 87, "good": 93, "fair": 100,"poor": 200 },
+      "60-69": { "excellent": 80, "very_good": 88, "good": 95, "fair": 102,"poor": 200 }
+    },
+    "female": {
+      "20-29": { "excellent": 76, "very_good": 85, "good": 92, "fair": 100, "poor": 200 },
+      "30-39": { "excellent": 80, "very_good": 87, "good": 93, "fair": 101, "poor": 200 },
+      "40-49": { "excellent": 82, "very_good": 89, "good": 97, "fair": 104, "poor": 200 },
+      "50-59": { "excellent": 85, "very_good": 94, "good": 101,"fair": 107, "poor": 200 },
+      "60-69": { "excellent": 86, "very_good": 96, "good": 102,"fair": 109, "poor": 200 }
+    }
+  }
+}

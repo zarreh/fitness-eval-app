@@ -1,0 +1,23 @@
+{
+  "test_name": "Wall Sit Test",
+  "unit": "seconds",
+  "category": "strength",
+  "source": "General fitness assessment standards (composite of published fitness testing protocols)",
+  "protocol": "Stand with back flat against wall, slide down to 90° knee angle. Hold as long as possible.",
+  "norms": {
+    "male": {
+      "20-29": { "excellent": 100, "very_good": 75, "good": 58, "fair": 45, "poor": 1 },
+      "30-39": { "excellent": 85,  "very_good": 65, "good": 45, "fair": 30, "poor": 1 },
+      "40-49": { "excellent": 75,  "very_good": 55, "good": 38, "fair": 25, "poor": 1 },
+      "50-59": { "excellent": 65,  "very_good": 45, "good": 30, "fair": 20, "poor": 1 },
+      "60-69": { "excellent": 50,  "very_good": 35, "good": 20, "fair": 10, "poor": 1 }
+    },
+    "female": {
+      "20-29": { "excellent": 85, "very_good": 65, "good": 45, "fair": 30, "poor": 1 },
+      "30-39": { "excellent": 75, "very_good": 55, "good": 35, "fair": 20, "poor": 1 },
+      "40-49": { "excellent": 65, "very_good": 45, "good": 30, "fair": 15, "poor": 1 },
+      "50-59": { "excellent": 55, "very_good": 35, "good": 20, "fair": 10, "poor": 1 },
+      "60-69": { "excellent": 45, "very_good": 25, "good": 15, "fair": 5,  "poor": 1 }
+    }
+  }
+}

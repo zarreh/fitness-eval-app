@@ -1,0 +1,23 @@
+{
+  "test_name": "Canadian Trunk Forward Flexion",
+  "unit": "cm",
+  "category": "flexibility",
+  "source": "ACSM's Guidelines for Exercise Testing and Prescription, 11th Edition",
+  "protocol": "Sit with feet flat against box. Reach forward slowly. Hold for 2 seconds. Best of two trials.",
+  "norms": {
+    "male": {
+      "20-29": { "excellent": 40, "very_good": 34, "good": 30, "fair": 25, "poor": 24 },
+      "30-39": { "excellent": 38, "very_good": 33, "good": 28, "fair": 23, "poor": 22 },
+      "40-49": { "excellent": 35, "very_good": 29, "good": 24, "fair": 18, "poor": 17 },
+      "50-59": { "excellent": 35, "very_good": 28, "good": 24, "fair": 16, "poor": 15 },
+      "60-69": { "excellent": 33, "very_good": 25, "good": 20, "fair": 15, "poor": 14 }
+    },
+    "female": {
+      "20-29": { "excellent": 41, "very_good": 37, "good": 34, "fair": 29, "poor": 28 },
+      "30-39": { "excellent": 41, "very_good": 36, "good": 32, "fair": 27, "poor": 26 },
+      "40-49": { "excellent": 38, "very_good": 34, "good": 30, "fair": 25, "poor": 24 },
+      "50-59": { "excellent": 39, "very_good": 33, "good": 30, "fair": 25, "poor": 24 },
+      "60-69": { "excellent": 35, "very_good": 31, "good": 27, "fair": 23, "poor": 22 }
+    }
+  }
+}

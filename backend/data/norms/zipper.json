@@ -1,0 +1,23 @@
+{
+  "test_name": "Zipper (Back Scratch) Test",
+  "unit": "cm",
+  "category": "flexibility",
+  "source": "ACSM's Guidelines for Exercise Testing and Prescription, 11th Edition (adapted)",
+  "protocol": "Reach one hand over shoulder, one behind back. Measure overlap (+) or gap (-) between fingertips. Best of two trials per side; record best.",
+  "norms": {
+    "male": {
+      "20-29": { "excellent": 5,  "very_good": 1,  "good": -3,  "fair": -7,  "poor": -8  },
+      "30-39": { "excellent": 3,  "very_good": -1, "good": -5,  "fair": -9,  "poor": -10 },
+      "40-49": { "excellent": 1,  "very_good": -3, "good": -7,  "fair": -11, "poor": -12 },
+      "50-59": { "excellent": -1, "very_good": -5, "good": -9,  "fair": -13, "poor": -14 },
+      "60-69": { "excellent": -3, "very_good": -7, "good": -11, "fair": -15, "poor": -16 }
+    },
+    "female": {
+      "20-29": { "excellent": 10, "very_good": 5,  "good": 0,   "fair": -5,  "poor": -6  },
+      "30-39": { "excellent": 8,  "very_good": 3,  "good": -2,  "fair": -7,  "poor": -8  },
+      "40-49": { "excellent": 5,  "very_good": 0,  "good": -5,  "fair": -10, "poor": -11 },
+      "50-59": { "excellent": 3,  "very_good": -2, "good": -7,  "fair": -12, "poor": -13 },
+      "60-69": { "excellent": 0,  "very_good": -5, "good": -10, "fair": -15, "poor": -16 }
+    }
+  }
+}
