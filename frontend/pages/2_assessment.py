@@ -11,6 +11,7 @@ from utils import (
     require_login,
     show_client_sidebar,
     show_step_indicator,
+    t,
 )
 
 st.set_page_config(page_title="Assessment", layout="wide")
@@ -19,25 +20,27 @@ require_login()
 show_step_indicator(2)
 show_client_sidebar()
 
-st.title("Assessment Input")
+st.title(t("assessment_title"))
 
 API_URL = st.session_state.get("api_url", "http://localhost:8000")
 
 # Guard: require profile first.
 if "client_profile" not in st.session_state:
-    st.warning("Please complete the **Client Profile** page first.")
-    st.page_link("pages/1_client_profile.py", label="← Go to Client Profile")
+    st.warning(t("assessment_profile_required"))
+    st.page_link("pages/1_client_profile.py", label=t("assessment_go_profile"))
     st.stop()
 
 client = st.session_state["client_profile"]
 st.markdown(
-    f"Recording test scores for **{client['name']}** "
-    f"({client['age']} y/o {client['gender']})."
+    t("assessment_recording",
+      name=client["name"],
+      age=client["age"],
+      gender=client["gender"])
 )
 
 # Allow coach to reset results and re-enter scores.
 if "calculation" in st.session_state:
-    if st.button("↺ Reset & Re-enter Scores"):
+    if st.button(f"↺ {t('assessment_reset')}"):
         for key in ("calculation", "report", "pdf_bytes"):
             st.session_state.pop(key, None)
         st.rerun()
@@ -66,15 +69,23 @@ battery = fetch_test_battery(API_URL)
 if not battery:
     st.stop()
 
-manual_tests = [t for t in battery if not t.get("computed", False)]
-computed_tests = [t for t in battery if t.get("computed", False)]
+manual_tests = [t_item for t_item in battery if not t_item.get("computed", False)]
+computed_tests = [t_item for t_item in battery if t_item.get("computed", False)]
 
-CATEGORY_LABELS = {
-    "strength":    "Strength",
+# Category labels from i18n bundle.
+lang_bundle = __import__("utils").load_translations(st.session_state.get("lang", "en"))
+CAT_LABELS: dict[str, str] = dict(lang_bundle.get("categories", {}))
+_DEFAULT_CATS = {
+    "strength": "Strength",
     "flexibility": "Flexibility",
-    "cardio":      "Cardiovascular",
-    "body_comp":   "Body Composition",
+    "cardio": "Cardiovascular",
+    "body_comp": "Body Composition",
 }
+
+
+def _cat_label(key: str) -> str:
+    return CAT_LABELS.get(key, _DEFAULT_CATS.get(key, key))
+
 
 categories: dict[str, list[dict]] = {}
 for test in manual_tests:
@@ -90,7 +101,7 @@ with st.form("assessment_form"):
         if not tests_in_cat:
             continue
 
-        st.subheader(CATEGORY_LABELS[cat_key])
+        st.subheader(_cat_label(cat_key))
         cols = st.columns(min(len(tests_in_cat), 3))
 
         for idx, test in enumerate(tests_in_cat):
@@ -109,29 +120,25 @@ with st.form("assessment_form"):
     # Body composition notice.
     if computed_tests:
         st.divider()
-        st.subheader("Body Composition (auto-computed)")
+        st.subheader(t("assessment_body_comp"))
         has_bmi = client.get("height_cm") and client.get("weight_kg")
         has_whr = client.get("waist_cm") and client.get("hip_cm")
 
         if has_bmi:
-            st.info(
-                f"BMI will be computed from height ({client['height_cm']} cm) "
-                f"and weight ({client['weight_kg']} kg)."
-            )
+            st.info(t("assessment_bmi_info",
+                      height=client["height_cm"],
+                      weight=client["weight_kg"]))
         else:
-            st.caption("BMI: add height and weight in Client Profile to enable.")
+            st.caption(t("assessment_bmi_missing"))
 
         if has_whr:
-            st.info(
-                f"Waist-to-Hip Ratio will be computed from waist ({client['waist_cm']} cm) "
-                f"and hip ({client['hip_cm']} cm)."
-            )
+            st.info(t("assessment_whr_info",
+                      waist=client["waist_cm"],
+                      hip=client["hip_cm"]))
         else:
-            st.caption(
-                "Waist-to-Hip Ratio: add waist and hip in Client Profile to enable."
-            )
+            st.caption(t("assessment_whr_missing"))
 
-    submitted = st.form_submit_button("Calculate Ratings", type="primary")
+    submitted = st.form_submit_button(t("assessment_calculate"), type="primary")
 
 
 # ── Call /assess/calculate ────────────────────────────────────────────────────
@@ -141,12 +148,12 @@ if submitted:
     has_whr = client.get("waist_cm") and client.get("hip_cm")
 
     if not active_tests and not has_bmi and not has_whr:
-        st.error("Enter at least one test result before calculating.")
+        st.error(t("assessment_no_tests"))
         st.stop()
 
     payload = {"client": client, "tests": active_tests}
 
-    with st.spinner("Calculating ratings…"):
+    with st.spinner(t("assessment_calculating")):
         try:
             response = httpx.post(
                 f"{API_URL}/assess/calculate",
@@ -186,7 +193,7 @@ if submitted:
         except Exception:
             pass  # Non-fatal — results are already in session state.
 
-    st.success("Ratings calculated. Proceed to the **Report** page.")
+    st.success(t("assessment_success"))
 
 
 # ── Progress helpers ──────────────────────────────────────────────────────────
@@ -228,19 +235,21 @@ def _compute_progress_deltas(
 def _delta_indicator_html(delta: dict) -> str:
     """Return inline HTML for a progress delta indicator."""
     if delta["direction"] == "improved":
+        prev_r = delta["previous_rating"]
         return (
             '<span style="color:#155724;font-size:0.75em;font-weight:700;">'
-            f'&#9650; Improved (was {delta["previous_rating"]})</span>'
+            f'&#9650; {t("progress_improved", prev=prev_r)}</span>'
         )
     elif delta["direction"] == "declined":
+        prev_r = delta["previous_rating"]
         return (
             '<span style="color:#721c24;font-size:0.75em;font-weight:700;">'
-            f'&#9660; Declined (was {delta["previous_rating"]})</span>'
+            f'&#9660; {t("progress_declined", prev=prev_r)}</span>'
         )
     else:
         return (
             '<span style="color:#888;font-size:0.75em;">'
-            "&#8212; Unchanged</span>"
+            f'&#8212; {t("progress_unchanged")}</span>'
         )
 
 
@@ -250,13 +259,10 @@ if "calculation" in st.session_state:
 
     # Compute progress deltas if we have previous assessment data.
     history = st.session_state.get("assessment_history", [])
-    # Find previous assessment — skip the most recent one if it matches current results.
     prev_results: list[dict] | None = None
     if len(history) >= 2:
         prev_results = history[1]["results"]
     elif len(history) == 1:
-        # Only show deltas if these are NEW results (not the restored ones).
-        # Check if the current results differ from the stored latest.
         stored = history[0]["results"]
         stored_vals = {r["test_name"]: r["raw_value"] for r in stored}
         current_vals = {r["test_name"]: r["raw_value"] for r in results}
@@ -274,10 +280,10 @@ if "calculation" in st.session_state:
         st.session_state.pop("progress_deltas", None)
 
     st.divider()
-    st.subheader("Results")
+    st.subheader(t("assessment_results"))
 
     if progress_deltas:
-        st.caption("Showing progress compared to previous assessment.")
+        st.caption(t("assessment_progress_caption"))
 
     # Group by category in canonical order.
     cat_order = ["strength", "flexibility", "cardio", "body_comp"]
@@ -290,7 +296,7 @@ if "calculation" in st.session_state:
         if not cat_results:
             continue
 
-        st.markdown(f"**{CATEGORY_LABELS.get(cat_key, cat_key)}**")
+        st.markdown(f"**{_cat_label(cat_key)}**")
         cols = st.columns(min(len(cat_results), 4))
 
         for col, r in zip(cols, cat_results):
@@ -331,4 +337,4 @@ if "calculation" in st.session_state:
         st.markdown("<div style='margin-bottom:0.5rem'></div>", unsafe_allow_html=True)
 
     st.divider()
-    st.page_link("pages/3_report.py", label="Continue to Report →")
+    st.page_link("pages/3_report.py", label=t("assessment_continue"))

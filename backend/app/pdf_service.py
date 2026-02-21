@@ -1,12 +1,14 @@
 """PDF report generation using WeasyPrint and Jinja2 templates."""
 
 from pathlib import Path
+from typing import cast
 
 import markdown as md_lib  # type: ignore[import-untyped]
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 from weasyprint import HTML  # type: ignore[import-untyped]
 
+from app.i18n_service import load_translations
 from app.models import MetricResult, ProgressDelta, ReportResponse
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
@@ -51,11 +53,13 @@ def _format_value(value: float) -> str:
 
 def _category_summary(
     results: list[MetricResult],
+    cat_labels: dict[str, str],
 ) -> list[dict[str, str | int]]:
     """Build per-category overview data for the summary cards.
 
     Args:
         results: All MetricResult objects for the report.
+        cat_labels: Translated category label mapping (key → display name).
 
     Returns:
         List of dicts with keys: key, label, count, best_rating, worst_rating.
@@ -83,7 +87,7 @@ def _category_summary(
         summaries.append(
             {
                 "key": cat_key,
-                "label": _CATEGORY_LABELS[cat_key],
+                "label": cat_labels.get(cat_key, _CATEGORY_LABELS[cat_key]),
                 "count": len(cat_results),
                 "best_rating": best,
                 "worst_rating": worst,
@@ -94,11 +98,13 @@ def _category_summary(
 
 def _group_by_category(
     results: list[MetricResult],
+    cat_labels: dict[str, str],
 ) -> list[tuple[str, str, list[MetricResult]]]:
     """Group results by category in canonical order.
 
     Args:
         results: All MetricResult objects for the report.
+        cat_labels: Translated category label mapping (key → display name).
 
     Returns:
         List of (category_key, category_label, results) tuples, one per
@@ -112,7 +118,8 @@ def _group_by_category(
     for cat_key in _CATEGORY_LABELS:
         cat_results = grouped.get(cat_key, [])
         if cat_results:
-            output.append((cat_key, _CATEGORY_LABELS[cat_key], cat_results))
+            label = cat_labels.get(cat_key, _CATEGORY_LABELS[cat_key])
+            output.append((cat_key, label, cat_results))
     return output
 
 
@@ -215,6 +222,10 @@ def render_report_pdf(report: ReportResponse) -> bytes:
     Returns:
         PDF file content as bytes.
     """
+    i18n = load_translations(report.language)
+    cat_labels: dict[str, str] = cast(dict[str, str], i18n.get("categories", {}))
+    rating_labels: dict[str, str] = cast(dict[str, str], i18n.get("ratings", {}))
+
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
         autoescape=select_autoescape(["html"]),
@@ -225,8 +236,10 @@ def render_report_pdf(report: ReportResponse) -> bytes:
     template = env.get_template("report.html")
     html_content = template.render(
         report=report,
-        category_summary=_category_summary(report.results),
-        category_groups=_group_by_category(report.results),
+        i18n=i18n,
+        rating_labels=rating_labels,
+        category_summary=_category_summary(report.results, cat_labels),
+        category_groups=_group_by_category(report.results, cat_labels),
         progress_map=_build_progress_map(report.progress),
         range_bars=_build_range_bars(report.results),
     )

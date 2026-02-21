@@ -81,6 +81,7 @@ class ReportRequest(BaseModel):
     coach_notes: Optional[str] = None
     coach_name: Optional[str] = None
     organization: Optional[str] = None
+    language: str = "en"
 
 
 class ReportResponse(BaseModel):
@@ -94,6 +95,7 @@ class ReportResponse(BaseModel):
     generated_at: datetime
     coach_name: Optional[str] = None
     organization: Optional[str] = None
+    language: str = "en"
 
 
 class TestInfo(BaseModel):

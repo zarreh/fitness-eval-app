@@ -3,7 +3,7 @@
 import httpx
 import streamlit as st
 
-from utils import require_login, show_client_sidebar, show_step_indicator
+from utils import require_login, show_client_sidebar, show_step_indicator, t
 
 st.set_page_config(page_title="Report", layout="wide")
 
@@ -11,30 +11,28 @@ require_login()
 show_step_indicator(3)
 show_client_sidebar()
 
-st.title("Report")
+st.title(t("report_title"))
 
 API_URL = st.session_state.get("api_url", "http://localhost:8000")
 
 # Guard: require assessment first.
 if "calculation" not in st.session_state:
-    st.warning("Please complete the **Assessment** page first.")
-    st.page_link("pages/2_assessment.py", label="← Go to Assessment")
+    st.warning(t("report_assessment_required"))
+    st.page_link("pages/2_assessment.py", label=t("report_go_assessment"))
     st.stop()
 
 client = st.session_state["client_profile"]
 calculation = st.session_state["calculation"]
 n_results = len(calculation["results"])
 
-st.markdown(
-    f"Generating report for **{client['name']}** based on {n_results} test result(s)."
-)
+st.markdown(t("report_generating_for", name=client["name"], count=n_results))
 
 # ── Report settings ───────────────────────────────────────────────────────────
-with st.expander("Report Settings", expanded="report" not in st.session_state):
+with st.expander(t("report_settings"), expanded="report" not in st.session_state):
     coach_notes = st.text_area(
-        "Additional notes for the LLM *(optional)*",
+        t("report_notes_label"),
         value=st.session_state.get("_coach_notes", ""),
-        placeholder="Any extra context to help tailor the summary — injuries, recent events, etc.",
+        placeholder=t("report_notes_placeholder"),
         height=80,
         key="coach_notes_input",
     )
@@ -44,20 +42,20 @@ report_exists = "report" in st.session_state
 
 if not report_exists:
     generate_clicked = st.button(
-        "Generate Report",
+        t("report_generate"),
         type="primary",
-        help="Call the LLM to generate a summary and workout plan.",
+        help=t("report_generate_help"),
     )
     regenerate_clicked = False
 else:
     col_regen, col_clear = st.columns([2, 5])
     with col_regen:
         regenerate_clicked = st.button(
-            "↺ Regenerate Report",
-            help="Re-run the LLM to get a fresh summary and workout plan.",
+            f"↺ {t('report_regenerate')}",
+            help=t("report_regenerate_help"),
         )
     with col_clear:
-        if st.button("✕ Clear Report", help="Remove the current report"):
+        if st.button(f"✕ {t('report_clear')}", help=t("report_clear_help")):
             for key in ("report", "pdf_bytes"):
                 st.session_state.pop(key, None)
             st.rerun()
@@ -73,6 +71,7 @@ def _call_generate_report(notes: str) -> dict | None:
         "coach_notes": notes.strip() or None,
         "coach_name": st.session_state.get("coach_name"),
         "organization": st.session_state.get("organization"),
+        "language": st.session_state.get("lang", "en"),
     }
     try:
         response = httpx.post(
@@ -99,14 +98,14 @@ if generate_clicked or regenerate_clicked:
     # Persist the coach notes so the expander retains the value.
     st.session_state["_coach_notes"] = coach_notes
 
-    with st.spinner("Generating summary and workout plan — this may take a moment…"):
+    with st.spinner(t("report_generating")):
         result = _call_generate_report(coach_notes)
 
     if result:
         st.session_state["report"] = result
         # Invalidate any cached PDF since the report changed.
         st.session_state.pop("pdf_bytes", None)
-        st.success("Report generated.")
+        st.success(t("report_generated_success"))
         st.rerun()
 
 
@@ -116,24 +115,22 @@ if "report" in st.session_state:
 
     st.divider()
 
-    tab_summary, tab_workout = st.tabs(["Assessment Summary", "Workout Plan"])
+    tab_summary, tab_workout = st.tabs(
+        [t("report_tab_summary"), t("report_tab_workout")]
+    )
 
     with tab_summary:
         st.markdown(report["llm_summary"])
 
     with tab_workout:
-        st.markdown(
-            "*Draft for coach review — please adapt as appropriate for this client.*"
-        )
+        st.markdown(f"*{t('report_workout_disclaimer')}*")
         st.markdown(report["workout_suggestions"])
 
     st.divider()
 
     # ── PDF download ──────────────────────────────────────────────────────────
-    # Generate PDF on demand and cache the bytes so the button doesn't
-    # re-trigger a full PDF render on every Streamlit rerun.
     if "pdf_bytes" not in st.session_state:
-        with st.spinner("Rendering PDF…"):
+        with st.spinner(t("report_rendering_pdf")):
             try:
                 pdf_response = httpx.post(
                     f"{API_URL}/assess/generate-pdf",
@@ -143,7 +140,7 @@ if "report" in st.session_state:
                 pdf_response.raise_for_status()
                 st.session_state["pdf_bytes"] = pdf_response.content
             except httpx.ConnectError:
-                st.error("Cannot reach the backend to generate the PDF.")
+                st.error(t("report_pdf_error"))
             except Exception as exc:
                 st.error(f"PDF generation failed: {exc}")
 
@@ -151,7 +148,7 @@ if "report" in st.session_state:
     if pdf_bytes:
         client_name = client["name"].replace(" ", "_")
         st.download_button(
-            label="⬇ Download PDF Report",
+            label=f"⬇ {t('report_download_pdf')}",
             data=pdf_bytes,
             file_name=f"fitness_report_{client_name}.pdf",
             mime="application/pdf",

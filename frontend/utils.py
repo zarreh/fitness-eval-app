@@ -9,6 +9,62 @@ import streamlit as st
 
 _STEP_LABELS = ["Client Profile", "Assessment", "Report"]
 
+# ── i18n helpers ───────────────────────────────────────────────────────────────
+
+_SUPPORTED_LANGS = [
+    {"code": "en", "name": "English", "flag": "🇬🇧"},
+    {"code": "es", "name": "Español", "flag": "🇪🇸"},
+    {"code": "fa", "name": "فارسی",  "flag": "🇮🇷"},
+]
+
+
+def load_translations(lang: str) -> dict:
+    """Fetch the UI translation bundle from the backend and cache it.
+
+    Args:
+        lang: BCP 47 language code (``"en"``, ``"es"``, ``"fa"``).
+
+    Returns:
+        Translation dict; falls back to English on network error.
+    """
+    cache_key = f"_i18n_{lang}"
+    if cache_key in st.session_state:
+        return st.session_state[cache_key]  # type: ignore[return-value]
+    api_url = st.session_state.get("api_url", "http://localhost:8000")
+    try:
+        resp = httpx.get(f"{api_url}/i18n/{lang}", timeout=5)
+        resp.raise_for_status()
+        data: dict = resp.json()
+    except Exception:
+        data = {"ui": {}, "ratings": {}, "categories": {}, "goals": {}, "pdf": {}}
+    st.session_state[cache_key] = data
+    return data
+
+
+def t(key: str, **kwargs: object) -> str:
+    """Look up a UI translation string for the current session language.
+
+    The key uses dot notation into the ``ui`` section of the bundle,
+    e.g. ``t("login_title")``.  Format kwargs are interpolated if present.
+
+    Args:
+        key: Dot-separated key path within ``ui`` (e.g. ``"login_title"``).
+        **kwargs: Named placeholders for ``.format()`` interpolation.
+
+    Returns:
+        Translated string, or the key itself when not found.
+    """
+    lang = st.session_state.get("lang", "en")
+    bundle = load_translations(lang)
+    ui = bundle.get("ui", {})
+    text = ui.get(key, key)
+    if kwargs:
+        try:
+            text = str(text).format(**kwargs)
+        except (KeyError, ValueError):
+            pass
+    return str(text)
+
 _RATING_COLORS: dict[str, str] = {
     "Excellent": "green",
     "Very Good": "green",
@@ -39,17 +95,33 @@ def require_login() -> None:
     if st.session_state.get("authenticated"):
         return
 
+    # Language selector above the login card (no auth needed).
+    _, lang_col, _ = st.columns([1, 1.5, 1])
+    with lang_col:
+        lang_options = {lc["code"]: f"{lc['flag']} {lc['name']}" for lc in _SUPPORTED_LANGS}
+        current_lang = st.session_state.get("lang", "en")
+        selected_lang = st.selectbox(
+            t("language_label"),
+            options=list(lang_options.keys()),
+            format_func=lambda c: lang_options[c],
+            index=list(lang_options.keys()).index(current_lang),
+            key="_lang_selector_login",
+        )
+        if selected_lang != current_lang:
+            st.session_state["lang"] = selected_lang
+            st.rerun()
+
     # Centre the login card with empty columns.
     _, col, _ = st.columns([1, 1.5, 1])
     with col:
         st.markdown(
-            "<h2 style='text-align:center;margin-bottom:1.2rem;'>🏋️ Coach Login</h2>",
+            f"<h2 style='text-align:center;margin-bottom:1.2rem;'>🏋️ {t('login_title')}</h2>",
             unsafe_allow_html=True,
         )
         with st.form("login_form"):
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Sign In", use_container_width=True)
+            username = st.text_input(t("login_username"))
+            password = st.text_input(t("login_password"), type="password")
+            submitted = st.form_submit_button(t("login_button"), use_container_width=True)
 
         if submitted:
             api_url = st.session_state.get("api_url", "http://localhost:8000")
@@ -68,9 +140,9 @@ def require_login() -> None:
                     )
                     st.rerun()
                 else:
-                    st.error("Invalid username or password.")
+                    st.error(t("login_error"))
             except httpx.ConnectError:
-                st.error("Cannot reach the backend. Is the API server running?")
+                st.error(t("login_backend_error"))
 
     st.stop()
 
@@ -83,8 +155,13 @@ def show_step_indicator(current_step: int) -> None:
     Args:
         current_step: 1 = Client Profile, 2 = Assessment, 3 = Report.
     """
+    step_labels = [
+        t("step_client_profile"),
+        t("step_assessment"),
+        t("step_report"),
+    ]
     cols = st.columns(3)
-    for i, (col, label) in enumerate(zip(cols, _STEP_LABELS)):
+    for i, (col, label) in enumerate(zip(cols, step_labels)):
         step_num = i + 1
         if step_num < current_step:
             bg, fg, prefix = "#d4edda", "#155724", "✓"
@@ -140,13 +217,27 @@ def show_client_sidebar() -> None:
     client_list: list[dict] = st.session_state.get("client_list", [])
 
     with st.sidebar:
+        # Language selector — always visible when authenticated.
+        lang_options = {lc["code"]: f"{lc['flag']} {lc['name']}" for lc in _SUPPORTED_LANGS}
+        current_lang = st.session_state.get("lang", "en")
+        selected_lang = st.selectbox(
+            t("language_label"),
+            options=list(lang_options.keys()),
+            format_func=lambda c: lang_options[c],
+            index=list(lang_options.keys()).index(current_lang),
+            key="_lang_selector_sidebar",
+        )
+        if selected_lang != current_lang:
+            st.session_state["lang"] = selected_lang
+            st.rerun()
+
         display_name = st.session_state.get("display_name", "")
         if display_name:
-            st.markdown(f"**Coach:** {display_name}")
+            st.markdown(f"**{t('coach_label')}:** {display_name}")
 
         if client_list:
             st.divider()
-            st.markdown("**Saved Clients**")
+            st.markdown(f"**{t('saved_clients')}**")
             to_delete: str | None = None
 
             for i, entry in enumerate(client_list):
@@ -156,7 +247,7 @@ def show_client_sidebar() -> None:
                         entry["name"],
                         key=f"_load_client_{i}",
                         use_container_width=True,
-                        help="Load this client's profile",
+                        help=t("load_client_help"),
                     ):
                         st.session_state["client_profile"] = entry["profile"]
                         for key in ("calculation", "report", "pdf_bytes"):
@@ -173,7 +264,7 @@ def show_client_sidebar() -> None:
                             }
                         st.rerun()
                 with col_del:
-                    if st.button("✕", key=f"_del_client_{i}", help="Remove client"):
+                    if st.button("✕", key=f"_del_client_{i}", help=t("remove_client_help")):
                         to_delete = entry["name"]
 
             if to_delete is not None:
@@ -183,7 +274,7 @@ def show_client_sidebar() -> None:
         # Logout button always shown when authenticated.
         if st.session_state.get("authenticated"):
             st.divider()
-            if st.button("🚪 Logout", use_container_width=True):
+            if st.button(f"🚪 {t('logout')}", use_container_width=True):
                 for key in ("authenticated", "current_user", "display_name",
                             "client_profile", "calculation", "report",
                             "pdf_bytes", "client_list"):
@@ -237,6 +328,20 @@ def rating_color(rating: str) -> str:
         A color string usable in Streamlit's :color[text] syntax.
     """
     return _RATING_COLORS.get(rating, "grey")
+
+
+def _tr(rating: str) -> str:
+    """Look up a translated rating label (Excellent/Very Good/Good/Fair/Poor).
+
+    Args:
+        rating: English rating key.
+
+    Returns:
+        Translated rating string for the current session language.
+    """
+    lang = st.session_state.get("lang", "en")
+    bundle = load_translations(lang)
+    return str(bundle.get("ratings", {}).get(rating, rating))
 
 
 def render_range_bar_html(
@@ -326,9 +431,9 @@ def render_range_bar_html(
         f'color:#1a1a2e;">&#9660;</div>'
         # Labels
         f'<div style="display:flex;font-size:0.55em;color:#888;margin-top:1px;">'
-        f'<span style="flex:1;text-align:left;">Poor</span>'
-        f'<span style="flex:1;text-align:center;">Good</span>'
-        f'<span style="flex:1;text-align:right;">Excellent</span>'
+        f'<span style="flex:1;text-align:left;">{_tr("Poor")}</span>'
+        f'<span style="flex:1;text-align:center;">{_tr("Good")}</span>'
+        f'<span style="flex:1;text-align:right;">{_tr("Excellent")}</span>'
         f'</div></div>'
     )
 
@@ -340,11 +445,13 @@ def rating_badge_html(rating: str) -> str:
         rating: One of Excellent, Very Good, Good, Fair, Poor.
 
     Returns:
-        An HTML <span> string styled as a colored pill badge.
+        An HTML <span> string styled as a colored pill badge with
+        the translated rating label for the current session language.
     """
     bg, fg = _BADGE_STYLES.get(rating, ("#e9ecef", "#333"))
+    label = _tr(rating)
     return (
         f'<span style="background:{bg};color:{fg};padding:2px 10px;'
         f'border-radius:12px;font-size:0.85em;font-weight:700;">'
-        f"{rating}</span>"
+        f"{label}</span>"
     )

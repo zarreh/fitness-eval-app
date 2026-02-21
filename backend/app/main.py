@@ -13,7 +13,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
-from app import auth_service, client_service, llm_service, logic, pdf_service
+from app import (
+    auth_service,
+    client_service,
+    i18n_service,
+    llm_service,
+    logic,
+    pdf_service,
+)
 from app.models import (
     AssessmentInput,
     AssessmentSnapshot,
@@ -50,6 +57,21 @@ app.add_middleware(
 async def health_check() -> dict[str, str]:
     """Confirm the API is running."""
     return {"status": "ok"}
+
+
+@app.get("/i18n/{lang}", tags=["system"])
+async def get_translations(lang: str) -> dict[str, object]:
+    """Return the UI translation bundle for the given language code.
+
+    Supported: ``en``, ``es``, ``fa``. Falls back to English for unknown codes.
+    """
+    return i18n_service.load_translations(lang)
+
+
+@app.get("/i18n", tags=["system"])
+async def list_languages() -> list[dict[str, str]]:
+    """Return the list of supported language options."""
+    return i18n_service.get_supported_languages()
 
 
 @app.post("/auth/login", response_model=LoginResponse, tags=["auth"])
@@ -159,11 +181,13 @@ async def generate_report(request: ReportRequest) -> ReportResponse:
         results=request.results,
         coach_notes=request.coach_notes,
         progress=request.progress,
+        language=request.language,
     )
     workout_suggestions = llm_service.generate_workout_suggestions(
         client=request.client,
         results=request.results,
         progress=request.progress,
+        language=request.language,
     )
 
     return ReportResponse(
@@ -175,6 +199,7 @@ async def generate_report(request: ReportRequest) -> ReportResponse:
         generated_at=datetime.now(tz=timezone.utc),
         coach_name=request.coach_name,
         organization=request.organization,
+        language=request.language,
     )
 
 

@@ -14,6 +14,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.config import settings
+from app.i18n_service import llm_language_instruction
 from app.models import ClientProfile, MetricResult, ProgressDelta
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
@@ -249,6 +250,7 @@ def generate_coach_summary(
     results: list[MetricResult],
     coach_notes: str | None = None,
     progress: list[ProgressDelta] | None = None,
+    language: str = "en",
 ) -> str:
     """Generate an assessment narrative summary for the coach.
 
@@ -260,6 +262,7 @@ def generate_coach_summary(
         results: Pre-calculated MetricResult objects from the logic engine.
         coach_notes: Optional additional context from the coach.
         progress: Optional progress deltas from a previous assessment.
+        language: BCP 47 language code for the LLM output (e.g. ``"es"``).
 
     Returns:
         LLM-generated summary text, or a fallback message if LLM is unavailable.
@@ -277,7 +280,7 @@ def generate_coach_summary(
             results_table=_format_results_table(results),
             coach_notes=coach_notes or client.notes or "None provided",
             progress_section=_format_progress_section(progress),
-        )
+        ) + llm_language_instruction(language)
 
         llm = get_llm()
         messages = [
@@ -294,6 +297,7 @@ def generate_workout_suggestions(
     client: ClientProfile,
     results: list[MetricResult],
     progress: list[ProgressDelta] | None = None,
+    language: str = "en",
 ) -> str:
     """Generate a starter workout plan draft for the coach's review.
 
@@ -301,6 +305,7 @@ def generate_workout_suggestions(
         client: Client profile including stated goals.
         results: Pre-calculated MetricResult objects from the logic engine.
         progress: Optional progress deltas from a previous assessment.
+        language: BCP 47 language code for the LLM output (e.g. ``"es"``).
 
     Returns:
         LLM-generated workout plan text, or a fallback message if LLM is unavailable.
@@ -317,7 +322,7 @@ def generate_workout_suggestions(
             overall_level=_compute_overall_level(results),
             results_table=_format_results_table(results),
             progress_section=_format_progress_section(progress),
-        )
+        ) + llm_language_instruction(language)
 
         llm = get_llm()
         messages = [
