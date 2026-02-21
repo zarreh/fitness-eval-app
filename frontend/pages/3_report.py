@@ -1,5 +1,7 @@
 """Report page — generates LLM narrative and downloads PDF."""
 
+from urllib.parse import quote
+
 import httpx
 import streamlit as st
 from utils import (
@@ -158,4 +160,27 @@ if "report" in st.session_state:
             file_name=f"fitness_report_{client_name}.pdf",
             mime="application/pdf",
             type="primary",
+        )
+
+    # ── CSV history export ─────────────────────────────────────────────────────
+    csv_key = f"_csv_{client['name']}"
+    if csv_key not in st.session_state:
+        if st.button(f"📊 {t('export_csv')}"):
+            try:
+                csv_resp = httpx.get(
+                    f"{API_URL}/clients/{quote(client['name'], safe='')}"
+                    "/history/csv",
+                    timeout=10,
+                )
+                csv_resp.raise_for_status()
+                st.session_state[csv_key] = csv_resp.content
+                st.rerun()
+            except Exception as exc:
+                st.error(f"CSV export failed: {exc}")
+    if st.session_state.get(csv_key):
+        st.download_button(
+            label=f"⬇ {t('export_csv')}",
+            data=st.session_state[csv_key],
+            file_name=f"history_{client['name'].replace(' ', '_')}.csv",
+            mime="text/csv",
         )

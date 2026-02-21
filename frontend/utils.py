@@ -4,6 +4,8 @@ Import at the top of each page:
     from utils import require_login, show_step_indicator, show_client_sidebar
 """
 
+import time
+
 import httpx
 import streamlit as st
 
@@ -196,7 +198,20 @@ def require_login() -> None:
     """
     inject_custom_css()
     if st.session_state.get("authenticated"):
-        return
+        # Enforce 60-minute session timeout.
+        login_ts = st.session_state.get("_login_time", 0.0)
+        if time.time() - login_ts > 3600:
+            for key in (
+                "authenticated", "current_user", "display_name",
+                "client_profile", "calculation", "report", "pdf_bytes",
+                "client_list", "assessment_history", "progress_deltas",
+                "_login_time",
+            ):
+                st.session_state.pop(key, None)
+            st.warning(t("session_expired"))
+            # Fall through to show the login form.
+        else:
+            return
 
     # Language selector above the login card (no auth needed).
     _, lang_col, _ = st.columns([1, 1.5, 1])
@@ -245,6 +260,7 @@ def require_login() -> None:
                     st.session_state["authenticated"] = True
                     st.session_state["current_user"] = data.get("username", username)
                     st.session_state["display_name"] = display_name
+                    st.session_state["_login_time"] = time.time()
                     # Pre-populate coach_name for PDF cover page.
                     st.session_state.setdefault("coach_name", display_name)
                     st.rerun()
@@ -357,6 +373,17 @@ def show_client_sidebar() -> None:
         if client_list:
             st.divider()
             st.markdown(f"**{t('saved_clients')}**")
+            search_q = st.text_input(
+                t("search_clients"),
+                key="_client_search",
+                placeholder=t("search_clients_placeholder"),
+                label_visibility="collapsed",
+            )
+            if search_q:
+                client_list = [
+                    e for e in client_list
+                    if search_q.lower() in e["name"].lower()
+                ]
             to_delete: str | None = None
 
             for i, entry in enumerate(client_list):
@@ -400,7 +427,7 @@ def show_client_sidebar() -> None:
             if st.button(f"🚪 {t('logout')}", use_container_width=True):
                 for key in ("authenticated", "current_user", "display_name",
                             "client_profile", "calculation", "report",
-                            "pdf_bytes", "client_list"):
+                            "pdf_bytes", "client_list", "_login_time"):
                     st.session_state.pop(key, None)
                 st.rerun()
 

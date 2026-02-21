@@ -97,7 +97,13 @@
     "language_label": "زبان",
     "progress_improved": "بهبود یافته (قبلاً {prev})",
     "progress_declined": "کاهش یافته (قبلاً {prev})",
-    "progress_unchanged": "بدون تغییر"
+    "progress_unchanged": "بدون تغییر",
+    "search_clients": "جستجوی مشتری",
+    "search_clients_placeholder": "فیلتر بر اساس نام…",
+    "history_compare_with": "مقایسه با ارزیابی تاریخی:",
+    "history_comparison": "مقایسه تاریخچه",
+    "export_csv": "خروجی CSV تاریخچه",
+    "session_expired": "جلسه شما منقضی شده است. لطفاً دوباره وارد شوید."
   },
   "ratings": {
     "Excellent": "عالی",

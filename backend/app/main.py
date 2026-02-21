@@ -7,11 +7,13 @@ Run with:
     uvicorn app.main:app --reload --port 8000
 """
 
+import csv
+import io
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 
 from app import (
     auth_service,
@@ -146,6 +148,41 @@ async def get_client_history(name: str) -> list[AssessmentSnapshot]:
         if r.name == name:
             return r.assessment_history
     raise HTTPException(status_code=404, detail=f"Client '{name}' not found.")
+
+
+@app.get("/clients/{name}/history/csv", tags=["clients"])
+async def export_client_history_csv(name: str) -> StreamingResponse:
+    """Export a client's full assessment history as a downloadable CSV file.
+
+    Returns HTTP 404 if the client does not exist.
+    Columns: date, test_name, raw_value, unit, rating, category.
+    """
+    records = client_service.load_clients()
+    record = next((r for r in records if r.name == name), None)
+    if not record:
+        raise HTTPException(status_code=404, detail=f"Client '{name}' not found.")
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["date", "test_name", "raw_value", "unit", "rating", "category"])
+    for snapshot in record.assessment_history:
+        date_str = snapshot.assessed_at.strftime("%Y-%m-%d %H:%M")
+        for result in snapshot.results:
+            writer.writerow([
+                date_str,
+                result.test_name,
+                result.raw_value,
+                result.unit,
+                result.rating,
+                result.category,
+            ])
+
+    filename = f"history_{name.replace(' ', '_')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/tests/battery", response_model=list[TestInfo], tags=["assessment"])

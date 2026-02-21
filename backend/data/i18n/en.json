@@ -97,7 +97,13 @@
     "language_label": "Language",
     "progress_improved": "Improved (was {prev})",
     "progress_declined": "Declined (was {prev})",
-    "progress_unchanged": "Unchanged"
+    "progress_unchanged": "Unchanged",
+    "search_clients": "Search Clients",
+    "search_clients_placeholder": "Filter by name…",
+    "history_compare_with": "Compare with historical assessment:",
+    "history_comparison": "History Comparison",
+    "export_csv": "Export History CSV",
+    "session_expired": "Your session has expired. Please sign in again."
   },
   "ratings": {
     "Excellent": "Excellent",

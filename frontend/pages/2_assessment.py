@@ -338,5 +338,54 @@ if "calculation" in st.session_state:
 
         st.markdown("<div style='margin-bottom:0.5rem'></div>", unsafe_allow_html=True)
 
+    # ── Historical Assessment Comparison ──────────────────────────────────────
+    if len(history) >= 2:
+        with st.expander(f"🕑 {t('history_comparison')}", expanded=False):
+            date_labels = [
+                snap["assessed_at"][:16].replace("T", " ")
+                for snap in history
+            ]
+            selected_idx = st.selectbox(
+                t("history_compare_with"),
+                options=list(range(len(history))),
+                format_func=lambda i: date_labels[i],  # type: ignore[arg-type]
+                key="_history_compare_select",
+            )
+            hist_snap = history[selected_idx]
+            hist_results = hist_snap["results"]
+            hist_date = date_labels[selected_idx]
+            hist_map = {r["test_name"]: r for r in hist_results}
+            curr_map = {r["test_name"]: r for r in results}
+            all_test_names = sorted(set(list(hist_map) + list(curr_map)))
+
+            hdr_t, hdr_h, hdr_c = st.columns([2, 2, 2])
+            hdr_t.markdown("**Test**")
+            hdr_h.markdown(f"**{hist_date}**")
+            hdr_c.markdown(f"**{t('assessment_results')}**")
+
+            for tname in all_test_names:
+                h = hist_map.get(tname)
+                c = curr_map.get(tname)
+                col_t, col_h, col_c = st.columns([2, 2, 2])
+                col_t.write(tname)
+                if h:
+                    raw_h = h["raw_value"]
+                    vs_h = str(int(raw_h)) if raw_h == int(raw_h) else f"{raw_h:.1f}"
+                    col_h.markdown(
+                        f"{vs_h} {h['unit']} {rating_badge_html(h['rating'])}",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    col_h.write("—")
+                if c:
+                    raw_c = c["raw_value"]
+                    vs_c = str(int(raw_c)) if raw_c == int(raw_c) else f"{raw_c:.1f}"
+                    col_c.markdown(
+                        f"{vs_c} {c['unit']} {rating_badge_html(c['rating'])}",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    col_c.write("—")
+
     st.divider()
     st.page_link("pages/3_report.py", label=t("assessment_continue"))

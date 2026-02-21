@@ -97,7 +97,13 @@
     "language_label": "Idioma",
     "progress_improved": "Mejoró (era {prev})",
     "progress_declined": "Empeoró (era {prev})",
-    "progress_unchanged": "Sin cambios"
+    "progress_unchanged": "Sin cambios",
+    "search_clients": "Buscar clientes",
+    "search_clients_placeholder": "Filtrar por nombre…",
+    "history_compare_with": "Comparar con evaluación histórica:",
+    "history_comparison": "Comparación de historial",
+    "export_csv": "Exportar historial CSV",
+    "session_expired": "Su sesión ha expirado. Por favor inicie sesión nuevamente."
   },
   "ratings": {
     "Excellent": "Excelente",
