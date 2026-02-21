@@ -35,28 +35,6 @@ if "client_profile" in st.session_state:
         st.rerun()
     st.divider()
 
-# ── Practitioner info (saved once per session) ────────────────────────────────
-with st.expander(t("profile_practitioner_info"), expanded=False):
-    pi_col1, pi_col2 = st.columns(2)
-    with pi_col1:
-        coach_name = st.text_input(
-            t("profile_coach_name"),
-            value=st.session_state.get("coach_name", ""),
-            placeholder="Dr. Jane Smith",
-            key="coach_name_input",
-        )
-    with pi_col2:
-        organization = st.text_input(
-            t("profile_organization"),
-            value=st.session_state.get("organization", ""),
-            placeholder="Elite Fitness Studio",
-            key="organization_input",
-        )
-    if st.button(t("profile_save_practitioner")):
-        st.session_state["coach_name"] = coach_name.strip() or None
-        st.session_state["organization"] = organization.strip() or None
-        st.success(t("profile_practitioner_saved"))
-
 st.markdown(f"#### {t('profile_client_details')}")
 
 # ── Client profile form ───────────────────────────────────────────────────────

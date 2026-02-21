@@ -89,10 +89,14 @@ def inject_custom_css() -> None:
             background: #1a1a2e;
             border-right: 1px solid rgba(255,255,255,0.07);
         }}
-        section[data-testid="stSidebar"] label,
-        section[data-testid="stSidebar"] p,
-        section[data-testid="stSidebar"] strong {{
+        /* All text in sidebar gets light color */
+        section[data-testid="stSidebar"] * {{
             color: #c8cfe0 !important;
+        }}
+        /* Selectbox needs a visible background */
+        section[data-testid="stSidebar"] [data-baseweb="select"] > div {{
+            background: rgba(255,255,255,0.1) !important;
+            border-color: rgba(255,255,255,0.2) !important;
         }}
         section[data-testid="stSidebar"] .stButton > button {{
             background: rgba(255,255,255,0.07);
@@ -150,7 +154,7 @@ def render_page_header(title: str, subtitle: str | None = None) -> None:
         subtitle: Optional smaller text shown below the heading.
     """
     sub_html = (
-        f'<p style="margin:6px 0 0;opacity:0.78;font-size:0.88em;">{subtitle}</p>'
+        f'<p style="margin:6px 0 0;font-size:0.9em;opacity:0.92;">{subtitle}</p>'
         if subtitle
         else ""
     )
@@ -237,11 +241,12 @@ def require_login() -> None:
                 )
                 if resp.status_code == 200:
                     data = resp.json()
+                    display_name = data.get("display_name", username)
                     st.session_state["authenticated"] = True
                     st.session_state["current_user"] = data.get("username", username)
-                    st.session_state["display_name"] = data.get(
-                        "display_name", username
-                    )
+                    st.session_state["display_name"] = display_name
+                    # Pre-populate coach_name for PDF cover page.
+                    st.session_state.setdefault("coach_name", display_name)
                     st.rerun()
                 else:
                     st.error(t("login_error"))
@@ -339,7 +344,15 @@ def show_client_sidebar() -> None:
 
         display_name = st.session_state.get("display_name", "")
         if display_name:
-            st.markdown(f"**{t('coach_label')}:** {display_name}")
+            st.markdown(
+                f'<div style="padding:8px 4px 4px;">'
+                f'<div style="font-size:0.72em;text-transform:uppercase;'
+                f'letter-spacing:0.08em;font-weight:600;opacity:0.6;">'
+                f'{t("coach_label")}</div>'
+                f'<div style="font-size:1.0em;font-weight:700;margin-top:2px;">'
+                f"👤 {display_name}</div></div>",
+                unsafe_allow_html=True,
+            )
 
         if client_list:
             st.divider()
