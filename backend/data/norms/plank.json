@@ -2,7 +2,8 @@
   "test_name": "Forearm Plank Test",
   "unit": "seconds",
   "category": "strength",
-  "source": "General fitness assessment standards (ACSM provides no standardised plank norms; values represent commonly cited benchmarks)",
+  "source": "Chase, K.A., Brigham, C.E., et al. (2014) Fitness Norms for the Plank Exercise. International Journal of Exercise Science and Applied Kinesiology, 8(2)",
+  "source_notes": "Norms originally established for collegiate athletes ages 18–25. Values are applied uniformly across adult age groups as a general standard. Reference: Males M=117.66±53.49s, Females M=106.15±49.52s",
   "protocol": "Maintain a straight line from head to heels on forearms and toes. Terminate when form breaks.",
   "norms": {
     "male": {

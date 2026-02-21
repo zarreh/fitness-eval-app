@@ -289,6 +289,8 @@ def calculate_single_test(
         rating=rating,
         category=norms["category"],
         description=f"{norms['test_name']}: {value} {norms['unit']} — {rating}",
+        thresholds=thresholds,
+        inverted=inverted,
     )
 
 
@@ -305,6 +307,13 @@ def _compute_bmi(client: ClientProfile) -> MetricResult:
     bmi = client.weight_kg / (height_m**2)  # type: ignore[operator]
     rating = classify_bmi(bmi)
     bmi_rounded = round(bmi, 1)
+    bmi_thresholds = {
+        "excellent": 23.0,
+        "very_good": 25.0,
+        "good": 27.5,
+        "fair": 30.0,
+        "poor": 50.0,
+    }
     return MetricResult(
         test_name="Body Mass Index (BMI)",
         raw_value=bmi_rounded,
@@ -312,6 +321,8 @@ def _compute_bmi(client: ClientProfile) -> MetricResult:
         rating=rating,
         category="body_comp",
         description=f"BMI: {bmi_rounded} kg/m² — {rating}",
+        thresholds=bmi_thresholds,
+        inverted=True,
     )
 
 
@@ -327,6 +338,22 @@ def _compute_whr(client: ClientProfile) -> MetricResult:
     whr = client.waist_cm / client.hip_cm  # type: ignore[operator]
     rating = classify_whr(whr, client.gender)
     whr_rounded = round(whr, 3)
+    if client.gender == "male":
+        whr_thresholds = {
+            "excellent": 0.85,
+            "very_good": 0.90,
+            "good": 0.95,
+            "fair": 1.00,
+            "poor": 1.50,
+        }
+    else:
+        whr_thresholds = {
+            "excellent": 0.75,
+            "very_good": 0.80,
+            "good": 0.85,
+            "fair": 0.90,
+            "poor": 1.50,
+        }
     return MetricResult(
         test_name="Waist-to-Hip Ratio",
         raw_value=whr_rounded,
@@ -334,6 +361,8 @@ def _compute_whr(client: ClientProfile) -> MetricResult:
         rating=rating,
         category="body_comp",
         description=f"Waist-to-Hip Ratio: {whr_rounded} — {rating}",
+        thresholds=whr_thresholds,
+        inverted=True,
     )
 
 

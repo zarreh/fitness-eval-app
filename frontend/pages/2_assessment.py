@@ -5,7 +5,13 @@ from urllib.parse import quote
 import httpx
 import streamlit as st
 
-from utils import rating_badge_html, require_login, show_client_sidebar, show_step_indicator
+from utils import (
+    rating_badge_html,
+    render_range_bar_html,
+    require_login,
+    show_client_sidebar,
+    show_step_indicator,
+)
 
 st.set_page_config(page_title="Assessment", layout="wide")
 
@@ -183,12 +189,95 @@ if submitted:
     st.success("Ratings calculated. Proceed to the **Report** page.")
 
 
+# ── Progress helpers ──────────────────────────────────────────────────────────
+
+_RATING_ORDER = ["Poor", "Fair", "Good", "Very Good", "Excellent"]
+
+
+def _compute_progress_deltas(
+    current: list[dict], previous: list[dict]
+) -> dict[str, dict]:
+    """Compare current vs previous results, return test_name → delta dict."""
+    prev_map = {r["test_name"]: r for r in previous}
+    deltas: dict[str, dict] = {}
+    for curr in current:
+        prev = prev_map.get(curr["test_name"])
+        if prev is None:
+            continue
+        delta_val = round(curr["raw_value"] - prev["raw_value"], 2)
+        curr_idx = _RATING_ORDER.index(curr["rating"]) if curr["rating"] in _RATING_ORDER else -1
+        prev_idx = _RATING_ORDER.index(prev["rating"]) if prev["rating"] in _RATING_ORDER else -1
+        if curr_idx > prev_idx:
+            direction = "improved"
+        elif curr_idx < prev_idx:
+            direction = "declined"
+        else:
+            direction = "unchanged"
+        deltas[curr["test_name"]] = {
+            "test_name": curr["test_name"],
+            "previous_value": prev["raw_value"],
+            "current_value": curr["raw_value"],
+            "previous_rating": prev["rating"],
+            "current_rating": curr["rating"],
+            "direction": direction,
+            "delta": delta_val,
+        }
+    return deltas
+
+
+def _delta_indicator_html(delta: dict) -> str:
+    """Return inline HTML for a progress delta indicator."""
+    if delta["direction"] == "improved":
+        return (
+            '<span style="color:#155724;font-size:0.75em;font-weight:700;">'
+            f'&#9650; Improved (was {delta["previous_rating"]})</span>'
+        )
+    elif delta["direction"] == "declined":
+        return (
+            '<span style="color:#721c24;font-size:0.75em;font-weight:700;">'
+            f'&#9660; Declined (was {delta["previous_rating"]})</span>'
+        )
+    else:
+        return (
+            '<span style="color:#888;font-size:0.75em;">'
+            "&#8212; Unchanged</span>"
+        )
+
+
 # ── Results dashboard ─────────────────────────────────────────────────────────
 if "calculation" in st.session_state:
     results: list[dict] = st.session_state["calculation"]["results"]
 
+    # Compute progress deltas if we have previous assessment data.
+    history = st.session_state.get("assessment_history", [])
+    # Find previous assessment — skip the most recent one if it matches current results.
+    prev_results: list[dict] | None = None
+    if len(history) >= 2:
+        prev_results = history[1]["results"]
+    elif len(history) == 1:
+        # Only show deltas if these are NEW results (not the restored ones).
+        # Check if the current results differ from the stored latest.
+        stored = history[0]["results"]
+        stored_vals = {r["test_name"]: r["raw_value"] for r in stored}
+        current_vals = {r["test_name"]: r["raw_value"] for r in results}
+        if stored_vals != current_vals:
+            prev_results = stored
+
+    progress_deltas: dict[str, dict] = {}
+    if prev_results:
+        progress_deltas = _compute_progress_deltas(results, prev_results)
+
+    # Store progress deltas in session state for the report page.
+    if progress_deltas:
+        st.session_state["progress_deltas"] = list(progress_deltas.values())
+    else:
+        st.session_state.pop("progress_deltas", None)
+
     st.divider()
     st.subheader("Results")
+
+    if progress_deltas:
+        st.caption("Showing progress compared to previous assessment.")
 
     # Group by category in canonical order.
     cat_order = ["strength", "flexibility", "cardio", "body_comp"]
@@ -208,6 +297,25 @@ if "calculation" in st.session_state:
             badge = rating_badge_html(r["rating"])
             raw = r["raw_value"]
             value_str = str(int(raw)) if raw == int(raw) else f"{raw:.1f}"
+
+            # Build optional delta indicator.
+            delta_html = ""
+            delta = progress_deltas.get(r["test_name"])
+            if delta:
+                delta_html = (
+                    f'<div style="margin-top:4px;">'
+                    f"{_delta_indicator_html(delta)}</div>"
+                )
+
+            # Build optional range bar.
+            bar_html = ""
+            if r.get("thresholds"):
+                bar_html = render_range_bar_html(
+                    value=raw,
+                    thresholds=r["thresholds"],
+                    inverted=r.get("inverted", False),
+                )
+
             col.markdown(
                 f'<div style="border:1px solid #e0e0e0;border-radius:6px;'
                 f'padding:10px 12px;text-align:center;background:#fafafa;">'
@@ -216,7 +324,7 @@ if "calculation" in st.session_state:
                 f'<div style="font-size:1.2em;font-weight:700;margin-bottom:6px;">'
                 f'{value_str}&nbsp;<span style="font-size:0.7em;color:#888;">'
                 f'{r["unit"]}</span></div>'
-                f"{badge}</div>",
+                f"{badge}{delta_html}{bar_html}</div>",
                 unsafe_allow_html=True,
             )
 

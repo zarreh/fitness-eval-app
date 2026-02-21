@@ -69,6 +69,7 @@ def _call_generate_report(notes: str) -> dict | None:
     payload = {
         "client": client,
         "results": calculation["results"],
+        "progress": st.session_state.get("progress_deltas"),
         "coach_notes": notes.strip() or None,
         "coach_name": st.session_state.get("coach_name"),
         "organization": st.session_state.get("organization"),

@@ -10,7 +10,7 @@ CLIENT PROFILE:
 
 ASSESSMENT RESULTS (pre-calculated by the fitness logic engine — do not recalculate or question these ratings):
 {results_table}
-
+{progress_section}
 Write a structured summary with exactly these three sections:
 
 ## Overall Summary

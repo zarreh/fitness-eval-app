@@ -9,7 +9,7 @@ CLIENT PROFILE:
 
 ASSESSMENT RESULTS (pre-calculated — do not recalculate):
 {results_table}
-
+{progress_section}
 INTENSITY GUIDANCE based on overall fitness level:
 - Excellent / Very Good: moderate-to-high intensity, challenge the client, include progression targets
 - Good: moderate intensity, build consistency before adding load or complexity

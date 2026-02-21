@@ -17,6 +17,7 @@ from app import client_service, llm_service, logic, pdf_service
 from app.config import settings
 from app.models import (
     AssessmentInput,
+    AssessmentSnapshot,
     CalculationResponse,
     ClientProfile,
     ClientRecord,
@@ -35,7 +36,7 @@ app = FastAPI(
         "Coach submits raw test data → ratings calculated "
         "→ LLM generates narrative → PDF report."
     ),
-    version="0.1.0",
+    version="0.2.0",
 )
 
 app.add_middleware(
@@ -104,6 +105,23 @@ async def save_client_assessment(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@app.get(
+    "/clients/{name}/history",
+    response_model=list[AssessmentSnapshot],
+    tags=["clients"],
+)
+async def get_client_history(name: str) -> list[AssessmentSnapshot]:
+    """Return full assessment history for a client (newest first).
+
+    Returns HTTP 404 if the client does not exist.
+    """
+    records = client_service.load_clients()
+    for r in records:
+        if r.name == name:
+            return r.assessment_history
+    raise HTTPException(status_code=404, detail=f"Client '{name}' not found.")
+
+
 @app.get("/tests/battery", response_model=list[TestInfo], tags=["assessment"])
 async def get_test_battery() -> list[TestInfo]:
     """Return metadata for all tests in the current assessment battery."""
@@ -136,15 +154,18 @@ async def generate_report(request: ReportRequest) -> ReportResponse:
         client=request.client,
         results=request.results,
         coach_notes=request.coach_notes,
+        progress=request.progress,
     )
     workout_suggestions = llm_service.generate_workout_suggestions(
         client=request.client,
         results=request.results,
+        progress=request.progress,
     )
 
     return ReportResponse(
         client=request.client,
         results=request.results,
+        progress=request.progress,
         llm_summary=llm_summary,
         workout_suggestions=workout_suggestions,
         generated_at=datetime.now(tz=timezone.utc),

@@ -11,10 +11,18 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.models import ClientProfile, ClientRecord, MetricResult
+from app.models import (
+    AssessmentSnapshot,
+    ClientProfile,
+    ClientRecord,
+    MetricResult,
+    ProgressDelta,
+)
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 CLIENTS_FILE = DATA_DIR / "clients.json"
+
+_RATING_ORDER = ["Poor", "Fair", "Good", "Very Good", "Excellent"]
 
 
 def _ensure_data_dir() -> None:
@@ -25,6 +33,9 @@ def _ensure_data_dir() -> None:
 def load_clients() -> list[ClientRecord]:
     """Return all saved clients ordered by most recently saved first.
 
+    Performs automatic migration of legacy records that have
+    ``last_assessment`` but no ``assessment_history``.
+
     Returns an empty list when the file does not exist yet.
     """
     if not CLIENTS_FILE.exists():
@@ -33,10 +44,22 @@ def load_clients() -> list[ClientRecord]:
         raw: list[dict[str, object]] = json.loads(
             CLIENTS_FILE.read_text(encoding="utf-8")
         )
-        return [ClientRecord.model_validate(r) for r in raw]
+        records = [ClientRecord.model_validate(r) for r in raw]
     except (json.JSONDecodeError, ValueError):
         # Corrupted file — treat as empty rather than crashing.
         return []
+
+    # Migrate legacy records: populate assessment_history from last_assessment.
+    for r in records:
+        if r.last_assessment and not r.assessment_history:
+            r.assessment_history = [
+                AssessmentSnapshot(
+                    results=r.last_assessment,
+                    assessed_at=r.assessed_at or r.saved_at,
+                )
+            ]
+
+    return records
 
 
 def _write_clients(records: list[ClientRecord]) -> None:
@@ -62,8 +85,8 @@ def upsert_client(profile: ClientProfile) -> ClientRecord:
     """Save or update a client.
 
     Matching is done by name (case-sensitive). If a record with the same
-    name already exists it is replaced in-place; otherwise a new record is
-    appended.
+    name already exists it is replaced in-place (preserving assessment
+    history); otherwise a new record is appended.
 
     Args:
         profile: The ``ClientProfile`` to save.
@@ -73,14 +96,22 @@ def upsert_client(profile: ClientProfile) -> ClientRecord:
     """
     records = load_clients()
     now = datetime.now(tz=timezone.utc)
-    record = ClientRecord(name=profile.name, profile=profile, saved_at=now)
 
     for i, existing in enumerate(records):
         if existing.name == profile.name:
-            records[i] = record
+            # Preserve assessment history when updating the profile.
+            records[i] = ClientRecord(
+                name=profile.name,
+                profile=profile,
+                saved_at=now,
+                last_assessment=existing.last_assessment,
+                assessed_at=existing.assessed_at,
+                assessment_history=existing.assessment_history,
+            )
             _write_clients(records)
-            return record
+            return records[i]
 
+    record = ClientRecord(name=profile.name, profile=profile, saved_at=now)
     records.append(record)
     _write_clients(records)
     return record
@@ -104,7 +135,10 @@ def delete_client(name: str) -> bool:
 
 
 def save_assessment(name: str, results: list[MetricResult]) -> ClientRecord:
-    """Attach the latest assessment results to an existing client record.
+    """Append an assessment to the client's history.
+
+    Previous assessments are preserved in ``assessment_history``.
+    ``last_assessment`` and ``assessed_at`` are updated for backward compat.
 
     Args:
         name: Client name (case-sensitive).
@@ -120,14 +154,67 @@ def save_assessment(name: str, results: list[MetricResult]) -> ClientRecord:
     now = datetime.now(tz=timezone.utc)
     for i, existing in enumerate(records):
         if existing.name == name:
+            snapshot = AssessmentSnapshot(results=results, assessed_at=now)
             updated = ClientRecord(
                 name=existing.name,
                 profile=existing.profile,
                 saved_at=existing.saved_at,
                 last_assessment=results,
                 assessed_at=now,
+                assessment_history=[snapshot] + existing.assessment_history,
             )
             records[i] = updated
             _write_clients(records)
             return updated
     raise ValueError(f"Client '{name}' not found.")
+
+
+def compute_progress(
+    current: list[MetricResult],
+    previous: list[MetricResult],
+) -> list[ProgressDelta]:
+    """Compare two assessment result sets and return per-test deltas.
+
+    Args:
+        current: Current assessment results.
+        previous: Previous assessment results.
+
+    Returns:
+        List of ProgressDelta for tests that appear in both assessments.
+    """
+    prev_map = {r.test_name: r for r in previous}
+    deltas: list[ProgressDelta] = []
+
+    for curr in current:
+        prev = prev_map.get(curr.test_name)
+        if prev is None:
+            continue
+
+        delta_val = round(curr.raw_value - prev.raw_value, 2)
+
+        curr_idx = (
+            _RATING_ORDER.index(curr.rating) if curr.rating in _RATING_ORDER else -1
+        )
+        prev_idx = (
+            _RATING_ORDER.index(prev.rating) if prev.rating in _RATING_ORDER else -1
+        )
+
+        if curr_idx > prev_idx:
+            direction = "improved"
+        elif curr_idx < prev_idx:
+            direction = "declined"
+        else:
+            direction = "unchanged"
+
+        deltas.append(
+            ProgressDelta(
+                test_name=curr.test_name,
+                previous_value=prev.raw_value,
+                current_value=curr.raw_value,
+                previous_rating=prev.rating,
+                current_rating=curr.rating,
+                direction=direction,
+                delta=delta_val,
+            )
+        )
+    return deltas

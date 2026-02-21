@@ -42,6 +42,8 @@ class MetricResult(BaseModel):
     percentile: Optional[float] = None
     category: str  # "strength" | "flexibility" | "cardio" | "body_comp"
     description: str
+    thresholds: Optional[dict[str, float]] = None
+    inverted: bool = False
 
 
 class CalculationResponse(BaseModel):
@@ -51,11 +53,31 @@ class CalculationResponse(BaseModel):
     results: list[MetricResult]
 
 
+class ProgressDelta(BaseModel):
+    """Change indicator for a single test between two assessments."""
+
+    test_name: str
+    previous_value: float
+    current_value: float
+    previous_rating: str
+    current_rating: str
+    direction: Literal["improved", "declined", "unchanged"]
+    delta: float  # current - previous (signed)
+
+
+class AssessmentSnapshot(BaseModel):
+    """A single timestamped assessment for history tracking."""
+
+    results: list[MetricResult]
+    assessed_at: datetime
+
+
 class ReportRequest(BaseModel):
     """Request body for /assess/generate-report."""
 
     client: ClientProfile
     results: list[MetricResult]
+    progress: Optional[list[ProgressDelta]] = None
     coach_notes: Optional[str] = None
     coach_name: Optional[str] = None
     organization: Optional[str] = None
@@ -66,6 +88,7 @@ class ReportResponse(BaseModel):
 
     client: ClientProfile
     results: list[MetricResult]
+    progress: Optional[list[ProgressDelta]] = None
     llm_summary: str
     workout_suggestions: str
     generated_at: datetime
@@ -105,3 +128,4 @@ class ClientRecord(BaseModel):
     saved_at: datetime
     last_assessment: Optional[list[MetricResult]] = None
     assessed_at: Optional[datetime] = None
+    assessment_history: list[AssessmentSnapshot] = []

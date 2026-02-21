@@ -108,12 +108,13 @@ def _refresh_client_list() -> None:
         resp = httpx.get(f"{api_url}/clients", timeout=10)
         resp.raise_for_status()
         records = resp.json()  # list of ClientRecord dicts
-        # Store name, profile, and last assessment (if any) for sidebar restore.
+        # Store name, profile, assessment history, and last assessment for sidebar.
         st.session_state["client_list"] = [
             {
                 "name": r["name"],
                 "profile": r["profile"],
                 "last_assessment": r.get("last_assessment"),
+                "assessment_history": r.get("assessment_history", []),
             }
             for r in records
         ]
@@ -150,6 +151,10 @@ def show_client_sidebar() -> None:
                         st.session_state["client_profile"] = entry["profile"]
                         for key in ("calculation", "report", "pdf_bytes"):
                             st.session_state.pop(key, None)
+                        # Store assessment history for progress tracking.
+                        st.session_state["assessment_history"] = entry.get(
+                            "assessment_history", []
+                        )
                         # Restore last assessment results if available.
                         if entry.get("last_assessment"):
                             st.session_state["calculation"] = {
@@ -216,6 +221,100 @@ def rating_color(rating: str) -> str:
         A color string usable in Streamlit's :color[text] syntax.
     """
     return _RATING_COLORS.get(rating, "grey")
+
+
+def render_range_bar_html(
+    value: float,
+    thresholds: dict[str, float],
+    inverted: bool = False,
+) -> str:
+    """Return inline HTML for a colored range bar with a marker at the value.
+
+    The bar has 5 zones (Poor → Excellent) with a triangle marker showing
+    where the client's value falls. For inverted tests (lower = better),
+    the value axis is flipped so the marker still moves right for improvement.
+
+    Args:
+        value: The client's raw test result.
+        thresholds: Dict with keys excellent, very_good, good, fair, poor.
+        inverted: If True, lower values are better (e.g. step test BPM).
+
+    Returns:
+        HTML string for a styled range bar.
+    """
+    t_fair = thresholds["fair"]
+    t_good = thresholds["good"]
+    t_vgood = thresholds["very_good"]
+    t_excellent = thresholds["excellent"]
+    t_poor = thresholds["poor"]
+
+    zone_colors = [
+        ("#f8d7da", "Poor"),
+        ("#fff3cd", "Fair"),
+        ("#c8f0c8", "Good"),
+        ("#b8e8c8", "V.Good"),
+        ("#d4edda", "Excellent"),
+    ]
+
+    if inverted:
+        # Lower is better. Flip axis so low values appear on the right (Excellent).
+        bar_min = min(t_excellent * 0.85, value * 0.85)
+        bar_max = max(t_fair * 1.2, value * 1.1)
+        total = bar_max - bar_min
+        if total <= 0:
+            total = 1
+        widths = [
+            (bar_max - t_fair) / total * 100,
+            (t_fair - t_good) / total * 100,
+            (t_good - t_vgood) / total * 100,
+            (t_vgood - t_excellent) / total * 100,
+            (t_excellent - bar_min) / total * 100,
+        ]
+        marker_pct = (bar_max - value) / total * 100
+    else:
+        # Higher is better. Standard axis.
+        bar_min = 0.0
+        bar_max = max(t_excellent * 1.25, value * 1.1)
+        total = bar_max - bar_min
+        if total <= 0:
+            total = 1
+        widths = [
+            (t_fair - bar_min) / total * 100,
+            (t_good - t_fair) / total * 100,
+            (t_vgood - t_good) / total * 100,
+            (t_excellent - t_vgood) / total * 100,
+            (bar_max - t_excellent) / total * 100,
+        ]
+        marker_pct = (value - bar_min) / total * 100
+
+    # Clamp widths and marker.
+    widths = [max(w, 0.5) for w in widths]
+    marker_pct = max(1, min(99, marker_pct))
+
+    zones_html = ""
+    for (color, label), w in zip(zone_colors, widths):
+        zones_html += (
+            f'<div style="width:{w:.1f}%;background:{color};height:100%;'
+            f'display:inline-block;box-sizing:border-box;'
+            f'border-right:1px solid rgba(0,0,0,0.08);"></div>'
+        )
+
+    return (
+        f'<div style="position:relative;width:100%;margin:4px 0 2px 0;">'
+        # Zones bar
+        f'<div style="display:flex;height:14px;border-radius:4px;'
+        f'overflow:hidden;border:1px solid #ddd;">{zones_html}</div>'
+        # Marker triangle
+        f'<div style="position:absolute;top:-2px;left:{marker_pct:.1f}%;'
+        f'transform:translateX(-50%);font-size:12px;line-height:1;'
+        f'color:#1a1a2e;">&#9660;</div>'
+        # Labels
+        f'<div style="display:flex;font-size:0.55em;color:#888;margin-top:1px;">'
+        f'<span style="flex:1;text-align:left;">Poor</span>'
+        f'<span style="flex:1;text-align:center;">Good</span>'
+        f'<span style="flex:1;text-align:right;">Excellent</span>'
+        f'</div></div>'
+    )
 
 
 def rating_badge_html(rating: str) -> str:

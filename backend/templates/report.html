@@ -350,6 +350,65 @@
     }
 
     /* ══════════════════════════════════════════════════════
+       PROGRESS INDICATORS
+       ══════════════════════════════════════════════════════ */
+    .delta-improved {
+      color: var(--c-excellent);
+      font-weight: 700;
+      font-size: 9pt;
+    }
+    .delta-declined {
+      color: var(--c-poor);
+      font-weight: 700;
+      font-size: 9pt;
+    }
+    .delta-unchanged {
+      color: var(--text-muted);
+      font-size: 9pt;
+    }
+    .prev-value {
+      font-size: 8pt;
+      color: var(--text-muted);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       RANGE BARS
+       ══════════════════════════════════════════════════════ */
+    .range-bar-wrap {
+      position: relative;
+      margin: 4px 0 2px 0;
+    }
+    .range-bar {
+      display: flex;
+      height: 8pt;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 0.5pt solid #ddd;
+    }
+    .range-bar-zone {
+      height: 100%;
+      box-sizing: border-box;
+      border-right: 0.5pt solid rgba(0,0,0,0.08);
+    }
+    .range-bar-marker {
+      position: absolute;
+      top: -1pt;
+      transform: translateX(-50%);
+      font-size: 8pt;
+      line-height: 1;
+      color: var(--primary);
+    }
+    .range-bar-labels {
+      display: flex;
+      font-size: 6pt;
+      color: var(--text-muted);
+      margin-top: 1pt;
+    }
+    .range-bar-labels span {
+      flex: 1;
+    }
+
+    /* ══════════════════════════════════════════════════════
        PAGE BREAKS & LAYOUT HELPERS
        ══════════════════════════════════════════════════════ */
     .page-break {
@@ -485,16 +544,56 @@
           <th>Test</th>
           <th>Result</th>
           <th>Rating</th>
+          {% if progress_map %}<th>Progress</th>{% endif %}
         </tr>
       </thead>
       <tbody>
         {% for result in cat_results %}
         {% set badge_class = result.rating | lower | replace(' ', '-') %}
+        {% set col_count = 3 %}{% if progress_map %}{% set col_count = 4 %}{% endif %}
         <tr>
           <td>{{ result.test_name }}</td>
           <td>{{ result.raw_value | fmt }}&nbsp;{{ result.unit }}</td>
           <td><span class="badge badge-{{ badge_class }}">{{ result.rating }}</span></td>
+          {% if progress_map %}
+          <td>
+            {% set delta = progress_map.get(result.test_name) %}
+            {% if delta %}
+              {% if delta.direction == "improved" %}
+                <span class="delta-improved">&#9650; Improved</span><br>
+                <span class="prev-value">was {{ delta.previous_value | fmt }} ({{ delta.previous_rating }})</span>
+              {% elif delta.direction == "declined" %}
+                <span class="delta-declined">&#9660; Declined</span><br>
+                <span class="prev-value">was {{ delta.previous_value | fmt }} ({{ delta.previous_rating }})</span>
+              {% else %}
+                <span class="delta-unchanged">&#8212; Unchanged</span>
+              {% endif %}
+            {% else %}
+              <span class="delta-unchanged">New</span>
+            {% endif %}
+          </td>
+          {% endif %}
         </tr>
+        {% set bar = range_bars.get(result.test_name) if range_bars else None %}
+        {% if bar %}
+        <tr>
+          <td colspan="{{ col_count }}" style="padding:2px 10px 8px 10px;border-bottom:1px solid var(--border-light);">
+            <div class="range-bar-wrap">
+              <div class="range-bar">
+                {% for zone in bar.zones %}
+                <div class="range-bar-zone" style="width:{{ zone.width_pct | round(1) }}%;background:{{ zone.color }};"></div>
+                {% endfor %}
+              </div>
+              <div class="range-bar-marker" style="left:{{ bar.marker_pct | round(1) }}%;">&#9660;</div>
+              <div class="range-bar-labels">
+                <span style="text-align:left;">Poor</span>
+                <span style="text-align:center;">Good</span>
+                <span style="text-align:right;">Excellent</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
         {% endfor %}
       </tbody>
     </table>

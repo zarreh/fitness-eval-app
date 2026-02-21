@@ -2,7 +2,8 @@
   "test_name": "Zipper (Back Scratch) Test",
   "unit": "cm",
   "category": "flexibility",
-  "source": "ACSM's Guidelines for Exercise Testing and Prescription, 11th Edition (adapted)",
+  "source": "Rikli, R.E., and Jones, C.J. (2013) Senior Fitness Test Manual, 2nd Edition. Human Kinetics",
+  "source_notes": "Norms developed for community-dwelling older adults ages 60–94 (Senior Fitness Test battery). Values are extrapolated to younger age groups (20–59) as norms were not originally validated for this population. Reference: Jones, C.J., & Rikli, R.E. (2002). Measuring functional fitness of older adults. The Journal on Active Aging, March-April, 24-30.",
   "protocol": "Reach one hand over shoulder, one behind back. Measure overlap (+) or gap (-) between fingertips. Best of two trials per side; record best.",
   "norms": {
     "male": {

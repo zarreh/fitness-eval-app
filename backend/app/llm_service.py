@@ -14,7 +14,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.config import settings
-from app.models import ClientProfile, MetricResult
+from app.models import ClientProfile, MetricResult, ProgressDelta
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
@@ -164,6 +164,39 @@ def _format_goals(goals: list[str]) -> str:
     )
 
 
+def _format_progress_section(progress: list[ProgressDelta] | None) -> str:
+    """Format progress deltas for prompt injection.
+
+    Args:
+        progress: List of progress deltas, or None if no previous assessment.
+
+    Returns:
+        A multi-line progress section string, or empty string if no progress.
+    """
+    if not progress:
+        return ""
+
+    _ARROWS = {"improved": "↑", "declined": "↓", "unchanged": "→"}
+
+    lines = [
+        "",
+        "PROGRESS SINCE LAST ASSESSMENT:",
+    ]
+    for p in progress:
+        arrow = _ARROWS[p.direction]
+        lines.append(
+            f"  - {p.test_name}: {p.previous_value} → {p.current_value} "
+            f"({arrow} {p.direction}, rating: {p.previous_rating} → {p.current_rating})"
+        )
+    lines.append("")
+    lines.append(
+        "When discussing results, note significant improvements or declines. "
+        "Use directional language (e.g., 'has improved from Fair to Good') "
+        "to highlight meaningful changes."
+    )
+    return "\n".join(lines)
+
+
 def _normalise_bullets(text: str) -> str:
     """Convert Unicode bullet characters to markdown list items.
 
@@ -215,6 +248,7 @@ def generate_coach_summary(
     client: ClientProfile,
     results: list[MetricResult],
     coach_notes: str | None = None,
+    progress: list[ProgressDelta] | None = None,
 ) -> str:
     """Generate an assessment narrative summary for the coach.
 
@@ -225,6 +259,7 @@ def generate_coach_summary(
         client: Client profile (name, age, gender, goals).
         results: Pre-calculated MetricResult objects from the logic engine.
         coach_notes: Optional additional context from the coach.
+        progress: Optional progress deltas from a previous assessment.
 
     Returns:
         LLM-generated summary text, or a fallback message if LLM is unavailable.
@@ -241,6 +276,7 @@ def generate_coach_summary(
             overall_level=_compute_overall_level(results),
             results_table=_format_results_table(results),
             coach_notes=coach_notes or client.notes or "None provided",
+            progress_section=_format_progress_section(progress),
         )
 
         llm = get_llm()
@@ -257,12 +293,14 @@ def generate_coach_summary(
 def generate_workout_suggestions(
     client: ClientProfile,
     results: list[MetricResult],
+    progress: list[ProgressDelta] | None = None,
 ) -> str:
     """Generate a starter workout plan draft for the coach's review.
 
     Args:
         client: Client profile including stated goals.
         results: Pre-calculated MetricResult objects from the logic engine.
+        progress: Optional progress deltas from a previous assessment.
 
     Returns:
         LLM-generated workout plan text, or a fallback message if LLM is unavailable.
@@ -278,6 +316,7 @@ def generate_workout_suggestions(
             goals=_format_goals(client.goals),
             overall_level=_compute_overall_level(results),
             results_table=_format_results_table(results),
+            progress_section=_format_progress_section(progress),
         )
 
         llm = get_llm()

@@ -7,7 +7,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 from weasyprint import HTML  # type: ignore[import-untyped]
 
-from app.models import MetricResult, ReportResponse
+from app.models import MetricResult, ProgressDelta, ReportResponse
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 
@@ -116,6 +116,96 @@ def _group_by_category(
     return output
 
 
+def _build_progress_map(
+    progress: list[ProgressDelta] | None,
+) -> dict[str, ProgressDelta]:
+    """Build a test_name → ProgressDelta lookup for the PDF template.
+
+    Args:
+        progress: Optional list of progress deltas.
+
+    Returns:
+        Dict mapping test_name to its ProgressDelta, or empty dict.
+    """
+    if not progress:
+        return {}
+    return {p.test_name: p for p in progress}
+
+
+def _compute_range_bar_data(
+    result: MetricResult,
+) -> dict[str, object] | None:
+    """Compute zone widths and marker position for a CSS range bar.
+
+    Args:
+        result: MetricResult with thresholds populated.
+
+    Returns:
+        Dict with zones (list of {color, width_pct}) and marker_pct,
+        or None if thresholds are not available.
+    """
+    if not result.thresholds:
+        return None
+
+    t = result.thresholds
+    t_fair = t["fair"]
+    t_good = t["good"]
+    t_vgood = t["very_good"]
+    t_excellent = t["excellent"]
+
+    zone_colors = ["#f8d7da", "#fff3cd", "#c8f0c8", "#b8e8c8", "#d4edda"]
+
+    if result.inverted:
+        bar_min = min(t_excellent * 0.85, result.raw_value * 0.85)
+        bar_max = max(t_fair * 1.2, result.raw_value * 1.1)
+        total = bar_max - bar_min or 1
+        widths = [
+            (bar_max - t_fair) / total * 100,
+            (t_fair - t_good) / total * 100,
+            (t_good - t_vgood) / total * 100,
+            (t_vgood - t_excellent) / total * 100,
+            (t_excellent - bar_min) / total * 100,
+        ]
+        marker_pct = (bar_max - result.raw_value) / total * 100
+    else:
+        bar_min = 0.0
+        bar_max = max(t_excellent * 1.25, result.raw_value * 1.1)
+        total = bar_max - bar_min or 1
+        widths = [
+            (t_fair - bar_min) / total * 100,
+            (t_good - t_fair) / total * 100,
+            (t_vgood - t_good) / total * 100,
+            (t_excellent - t_vgood) / total * 100,
+            (bar_max - t_excellent) / total * 100,
+        ]
+        marker_pct = (result.raw_value - bar_min) / total * 100
+
+    widths = [max(w, 0.5) for w in widths]
+    marker_pct = max(1, min(99, marker_pct))
+
+    zones = [{"color": c, "width_pct": w} for c, w in zip(zone_colors, widths)]
+    return {"zones": zones, "marker_pct": marker_pct}
+
+
+def _build_range_bars(
+    results: list[MetricResult],
+) -> dict[str, dict[str, object]]:
+    """Build a test_name → range bar data lookup for the PDF template.
+
+    Args:
+        results: All MetricResult objects for the report.
+
+    Returns:
+        Dict mapping test_name to its range bar data.
+    """
+    bars: dict[str, dict[str, object]] = {}
+    for r in results:
+        bar_data = _compute_range_bar_data(r)
+        if bar_data:
+            bars[r.test_name] = bar_data
+    return bars
+
+
 def render_report_pdf(report: ReportResponse) -> bytes:
     """Render a ReportResponse to PDF bytes via Jinja2 + WeasyPrint.
 
@@ -137,6 +227,8 @@ def render_report_pdf(report: ReportResponse) -> bytes:
         report=report,
         category_summary=_category_summary(report.results),
         category_groups=_group_by_category(report.results),
+        progress_map=_build_progress_map(report.progress),
+        range_bars=_build_range_bars(report.results),
     )
     pdf_bytes: bytes = HTML(
         string=html_content, base_url=str(TEMPLATES_DIR)
