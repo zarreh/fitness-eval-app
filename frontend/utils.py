@@ -1,7 +1,7 @@
 """Shared UI utilities used across all Streamlit pages.
 
 Import at the top of each page:
-    from utils import require_login, show_step_indicator, show_client_sidebar, rating_color
+    from utils import require_login, show_step_indicator, show_client_sidebar
 """
 
 import httpx
@@ -65,6 +65,104 @@ def t(key: str, **kwargs: object) -> str:
             pass
     return str(text)
 
+# ── Global CSS & page structure ────────────────────────────────────────────────
+
+
+def inject_custom_css() -> None:
+    """Inject global CSS for a professional, consistent UI look.
+
+    Handles RTL layout automatically when the session language is Farsi.
+    Called at the start of require_login() so styles are applied before
+    any page content renders.
+    """
+    is_rtl = st.session_state.get("lang") == "fa"
+    direction = "rtl" if is_rtl else "ltr"
+    st.markdown(
+        f"""<style>
+        body {{ direction: {direction}; }}
+        #MainMenu {{ visibility: hidden; }}
+        footer {{ visibility: hidden; }}
+        .main .block-container {{ padding-top: 0.75rem; }}
+
+        /* ── Sidebar: dark navy ── */
+        section[data-testid="stSidebar"] {{
+            background: #1a1a2e;
+            border-right: 1px solid rgba(255,255,255,0.07);
+        }}
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] strong {{
+            color: #c8cfe0 !important;
+        }}
+        section[data-testid="stSidebar"] .stButton > button {{
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.13);
+            color: #dde2f0 !important;
+            border-radius: 6px;
+        }}
+        section[data-testid="stSidebar"] .stButton > button:hover {{
+            background: rgba(255,255,255,0.14);
+            border-color: rgba(255,255,255,0.28);
+        }}
+        section[data-testid="stSidebar"] hr {{
+            border-color: rgba(255,255,255,0.1) !important;
+        }}
+
+        /* ── Primary button ── */
+        div.stButton > button[kind="primary"] {{
+            background: #1a1a2e;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            color: white;
+        }}
+        div.stButton > button[kind="primary"]:hover {{
+            background: #0f3460;
+            box-shadow: 0 4px 12px rgba(26,26,46,0.22);
+        }}
+
+        /* ── Metric cards ── */
+        div[data-testid="metric-container"] {{
+            background: #ffffff;
+            border: 1px solid #e0e4e8;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }}
+
+        /* ── Expander ── */
+        div[data-testid="stExpander"] {{
+            border: 1px solid #e0e4e8 !important;
+            border-radius: 8px;
+        }}
+
+        /* ── Alerts / info boxes ── */
+        div[data-testid="stAlert"] {{ border-radius: 8px; }}
+        </style>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_page_header(title: str, subtitle: str | None = None) -> None:
+    """Render a styled gradient page header banner.
+
+    Args:
+        title: Main heading text displayed prominently.
+        subtitle: Optional smaller text shown below the heading.
+    """
+    sub_html = (
+        f'<p style="margin:6px 0 0;opacity:0.78;font-size:0.88em;">{subtitle}</p>'
+        if subtitle
+        else ""
+    )
+    st.markdown(
+        f'<div style="background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%);'
+        f'color:white;padding:18px 24px;border-radius:8px;margin-bottom:1.2rem;">'
+        f'<h2 style="margin:0;font-size:1.3em;font-weight:700;">'
+        f"{title}</h2>{sub_html}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 _RATING_COLORS: dict[str, str] = {
     "Excellent": "green",
     "Very Good": "green",
@@ -92,13 +190,16 @@ def require_login() -> None:
     and ``st.stop()`` is called so the rest of the page never renders.
     Call this as the **first statement** in every page (after imports).
     """
+    inject_custom_css()
     if st.session_state.get("authenticated"):
         return
 
     # Language selector above the login card (no auth needed).
     _, lang_col, _ = st.columns([1, 1.5, 1])
     with lang_col:
-        lang_options = {lc["code"]: f"{lc['flag']} {lc['name']}" for lc in _SUPPORTED_LANGS}
+        lang_options = {
+            lc["code"]: f"{lc['flag']} {lc['name']}" for lc in _SUPPORTED_LANGS
+        }
         current_lang = st.session_state.get("lang", "en")
         selected_lang = st.selectbox(
             t("language_label"),
@@ -115,13 +216,16 @@ def require_login() -> None:
     _, col, _ = st.columns([1, 1.5, 1])
     with col:
         st.markdown(
-            f"<h2 style='text-align:center;margin-bottom:1.2rem;'>🏋️ {t('login_title')}</h2>",
+            f"<h2 style='text-align:center;margin-bottom:1.2rem;'>"
+            f"🏋️ {t('login_title')}</h2>",
             unsafe_allow_html=True,
         )
         with st.form("login_form"):
             username = st.text_input(t("login_username"))
             password = st.text_input(t("login_password"), type="password")
-            submitted = st.form_submit_button(t("login_button"), use_container_width=True)
+            submitted = st.form_submit_button(
+                t("login_button"), use_container_width=True
+            )
 
         if submitted:
             api_url = st.session_state.get("api_url", "http://localhost:8000")
@@ -218,7 +322,9 @@ def show_client_sidebar() -> None:
 
     with st.sidebar:
         # Language selector — always visible when authenticated.
-        lang_options = {lc["code"]: f"{lc['flag']} {lc['name']}" for lc in _SUPPORTED_LANGS}
+        lang_options = {
+            lc["code"]: f"{lc['flag']} {lc['name']}" for lc in _SUPPORTED_LANGS
+        }
         current_lang = st.session_state.get("lang", "en")
         selected_lang = st.selectbox(
             t("language_label"),
@@ -264,7 +370,11 @@ def show_client_sidebar() -> None:
                             }
                         st.rerun()
                 with col_del:
-                    if st.button("✕", key=f"_del_client_{i}", help=t("remove_client_help")):
+                    if st.button(
+                        "✕",
+                        key=f"_del_client_{i}",
+                        help=t("remove_client_help"),
+                    ):
                         to_delete = entry["name"]
 
             if to_delete is not None:
@@ -367,8 +477,6 @@ def render_range_bar_html(
     t_good = thresholds["good"]
     t_vgood = thresholds["very_good"]
     t_excellent = thresholds["excellent"]
-    t_poor = thresholds["poor"]
-
     zone_colors = [
         ("#f8d7da", "Poor"),
         ("#fff3cd", "Fair"),

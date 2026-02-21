@@ -4,9 +4,9 @@ from urllib.parse import quote
 
 import httpx
 import streamlit as st
-
 from utils import (
     rating_badge_html,
+    render_page_header,
     render_range_bar_html,
     require_login,
     show_client_sidebar,
@@ -20,7 +20,7 @@ require_login()
 show_step_indicator(2)
 show_client_sidebar()
 
-st.title(t("assessment_title"))
+render_page_header(t("assessment_title"))
 
 API_URL = st.session_state.get("api_url", "http://localhost:8000")
 
@@ -212,8 +212,10 @@ def _compute_progress_deltas(
         if prev is None:
             continue
         delta_val = round(curr["raw_value"] - prev["raw_value"], 2)
-        curr_idx = _RATING_ORDER.index(curr["rating"]) if curr["rating"] in _RATING_ORDER else -1
-        prev_idx = _RATING_ORDER.index(prev["rating"]) if prev["rating"] in _RATING_ORDER else -1
+        curr_r = curr["rating"]
+        prev_r = prev["rating"]
+        curr_idx = _RATING_ORDER.index(curr_r) if curr_r in _RATING_ORDER else -1
+        prev_idx = _RATING_ORDER.index(prev_r) if prev_r in _RATING_ORDER else -1
         if curr_idx > prev_idx:
             direction = "improved"
         elif curr_idx < prev_idx:

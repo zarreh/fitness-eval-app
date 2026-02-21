@@ -2,8 +2,13 @@
 
 import httpx
 import streamlit as st
-
-from utils import require_login, show_client_sidebar, show_step_indicator, t
+from utils import (
+    render_page_header,
+    require_login,
+    show_client_sidebar,
+    show_step_indicator,
+    t,
+)
 
 st.set_page_config(page_title="Report", layout="wide")
 
@@ -11,7 +16,7 @@ require_login()
 show_step_indicator(3)
 show_client_sidebar()
 
-st.title(t("report_title"))
+render_page_header(t("report_title"))
 
 API_URL = st.session_state.get("api_url", "http://localhost:8000")
 

@@ -1,8 +1,14 @@
 """Client Profile page — collects and stores client information."""
 
 import streamlit as st
-
-from utils import require_login, save_client_to_backend, show_client_sidebar, show_step_indicator, t
+from utils import (
+    render_page_header,
+    require_login,
+    save_client_to_backend,
+    show_client_sidebar,
+    show_step_indicator,
+    t,
+)
 
 st.set_page_config(page_title="Client Profile", layout="wide")
 
@@ -10,7 +16,7 @@ require_login()
 show_step_indicator(1)
 show_client_sidebar()
 
-st.title(t("profile_title"))
+render_page_header(t("profile_title"))
 
 GOAL_OPTIONS = [
     "weight_loss",
@@ -23,7 +29,7 @@ GOAL_OPTIONS = [
 
 # ── New-client reset button ───────────────────────────────────────────────────
 if "client_profile" in st.session_state:
-    if st.button(f"✕ {t('profile_clear')}", help="Clear the current client and start fresh"):
+    if st.button(f"✕ {t('profile_clear')}", help=t("profile_clear")):
         for key in ("client_profile", "calculation", "report", "pdf_bytes"):
             st.session_state.pop(key, None)
         st.rerun()
