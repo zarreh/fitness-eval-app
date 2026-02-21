@@ -60,8 +60,12 @@ def require_login() -> None:
                     timeout=10,
                 )
                 if resp.status_code == 200:
+                    data = resp.json()
                     st.session_state["authenticated"] = True
-                    st.session_state["current_user"] = username
+                    st.session_state["current_user"] = data.get("username", username)
+                    st.session_state["display_name"] = data.get(
+                        "display_name", username
+                    )
                     st.rerun()
                 else:
                     st.error("Invalid username or password.")
@@ -104,8 +108,10 @@ def show_step_indicator(current_step: int) -> None:
 def _refresh_client_list() -> None:
     """Fetch saved clients from the backend and update session state."""
     api_url = st.session_state.get("api_url", "http://localhost:8000")
+    coach = st.session_state.get("current_user", "")
     try:
-        resp = httpx.get(f"{api_url}/clients", timeout=10)
+        params = {"coach": coach} if coach else {}
+        resp = httpx.get(f"{api_url}/clients", params=params, timeout=10)
         resp.raise_for_status()
         records = resp.json()  # list of ClientRecord dicts
         # Store name, profile, assessment history, and last assessment for sidebar.
@@ -134,6 +140,10 @@ def show_client_sidebar() -> None:
     client_list: list[dict] = st.session_state.get("client_list", [])
 
     with st.sidebar:
+        display_name = st.session_state.get("display_name", "")
+        if display_name:
+            st.markdown(f"**Coach:** {display_name}")
+
         if client_list:
             st.divider()
             st.markdown("**Saved Clients**")
@@ -174,8 +184,9 @@ def show_client_sidebar() -> None:
         if st.session_state.get("authenticated"):
             st.divider()
             if st.button("🚪 Logout", use_container_width=True):
-                for key in ("authenticated", "current_user", "client_profile",
-                            "calculation", "report", "pdf_bytes", "client_list"):
+                for key in ("authenticated", "current_user", "display_name",
+                            "client_profile", "calculation", "report",
+                            "pdf_bytes", "client_list"):
                     st.session_state.pop(key, None)
                 st.rerun()
 
@@ -184,13 +195,18 @@ def save_client_to_backend(profile: dict) -> None:
     """Upsert a client profile to the backend.
 
     Sends the ``ClientProfile`` fields directly; the backend sets ``saved_at``.
+    Attaches the current coach username so clients are scoped per coach.
 
     Args:
         profile: The client profile dictionary from session state.
     """
     api_url = st.session_state.get("api_url", "http://localhost:8000")
+    coach = st.session_state.get("current_user", "")
     try:
-        resp = httpx.post(f"{api_url}/clients", json=profile, timeout=10)
+        params = {"coach": coach} if coach else {}
+        resp = httpx.post(
+            f"{api_url}/clients", json=profile, params=params, timeout=10
+        )
         resp.raise_for_status()
     except Exception:
         pass  # Non-fatal — profile is already in session state.

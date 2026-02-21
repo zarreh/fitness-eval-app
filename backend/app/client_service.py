@@ -10,6 +10,7 @@ import os
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 from app.models import (
     AssessmentSnapshot,
@@ -30,13 +31,21 @@ def _ensure_data_dir() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def load_clients() -> list[ClientRecord]:
-    """Return all saved clients ordered by most recently saved first.
+def load_clients(coach_username: str | None = None) -> list[ClientRecord]:
+    """Return saved clients, optionally filtered by coach.
 
     Performs automatic migration of legacy records that have
     ``last_assessment`` but no ``assessment_history``.
 
-    Returns an empty list when the file does not exist yet.
+    Legacy records (empty ``coach_username``) are visible to all coaches.
+
+    Args:
+        coach_username: When provided, only return clients belonging to
+            this coach (plus legacy records with no coach assigned).
+
+    Returns:
+        Client list ordered by most recently saved first, or empty list
+        when the file does not exist yet.
     """
     if not CLIENTS_FILE.exists():
         return []
@@ -58,6 +67,13 @@ def load_clients() -> list[ClientRecord]:
                     assessed_at=r.assessed_at or r.saved_at,
                 )
             ]
+
+    if coach_username:
+        records = [
+            r
+            for r in records
+            if r.coach_username == coach_username or r.coach_username == ""
+        ]
 
     return records
 
@@ -81,7 +97,9 @@ def _write_clients(records: list[ClientRecord]) -> None:
         raise
 
 
-def upsert_client(profile: ClientProfile) -> ClientRecord:
+def upsert_client(
+    profile: ClientProfile, coach_username: str = ""
+) -> ClientRecord:
     """Save or update a client.
 
     Matching is done by name (case-sensitive). If a record with the same
@@ -90,6 +108,7 @@ def upsert_client(profile: ClientProfile) -> ClientRecord:
 
     Args:
         profile: The ``ClientProfile`` to save.
+        coach_username: Username of the coach who owns this client.
 
     Returns:
         The saved ``ClientRecord`` with an updated ``saved_at`` timestamp.
@@ -107,11 +126,17 @@ def upsert_client(profile: ClientProfile) -> ClientRecord:
                 last_assessment=existing.last_assessment,
                 assessed_at=existing.assessed_at,
                 assessment_history=existing.assessment_history,
+                coach_username=existing.coach_username or coach_username,
             )
             _write_clients(records)
             return records[i]
 
-    record = ClientRecord(name=profile.name, profile=profile, saved_at=now)
+    record = ClientRecord(
+        name=profile.name,
+        profile=profile,
+        saved_at=now,
+        coach_username=coach_username,
+    )
     records.append(record)
     _write_clients(records)
     return record
@@ -199,6 +224,7 @@ def compute_progress(
             _RATING_ORDER.index(prev.rating) if prev.rating in _RATING_ORDER else -1
         )
 
+        direction: Literal["improved", "declined", "unchanged"]
         if curr_idx > prev_idx:
             direction = "improved"
         elif curr_idx < prev_idx:

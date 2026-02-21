@@ -118,6 +118,8 @@ class LoginResponse(BaseModel):
     """Response from /auth/login."""
 
     authenticated: bool
+    username: str = ""
+    display_name: str = ""
 
 
 class ClientRecord(BaseModel):
@@ -129,3 +131,4 @@ class ClientRecord(BaseModel):
     last_assessment: Optional[list[MetricResult]] = None
     assessed_at: Optional[datetime] = None
     assessment_history: list[AssessmentSnapshot] = []
+    coach_username: str = ""

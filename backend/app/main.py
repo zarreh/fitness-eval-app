@@ -13,8 +13,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
-from app import client_service, llm_service, logic, pdf_service
-from app.config import settings
+from app import auth_service, client_service, llm_service, logic, pdf_service
 from app.models import (
     AssessmentInput,
     AssessmentSnapshot,
@@ -55,32 +54,37 @@ async def health_check() -> dict[str, str]:
 
 @app.post("/auth/login", response_model=LoginResponse, tags=["auth"])
 async def login(request: LoginRequest) -> LoginResponse:
-    """Validate coach credentials against COACH_USERNAME / COACH_PASSWORD env vars.
+    """Validate coach credentials.
 
+    Checks ``coaches.json`` first, then falls back to env-var credentials.
     Returns HTTP 401 if credentials do not match.
     """
-    ok = (
-        request.username == settings.coach_username
-        and request.password == settings.coach_password
-    )
-    if not ok:
+    coach = auth_service.validate_credentials(request.username, request.password)
+    if not coach:
         raise HTTPException(status_code=401, detail="Invalid username or password.")
-    return LoginResponse(authenticated=True)
+    return LoginResponse(
+        authenticated=True,
+        username=coach["username"],
+        display_name=coach["display_name"],
+    )
 
 
 @app.get("/clients", response_model=list[ClientRecord], tags=["clients"])
-async def list_clients() -> list[ClientRecord]:
-    """Return all saved client records ordered by most recently saved first."""
-    return client_service.load_clients()
+async def list_clients(coach: str | None = None) -> list[ClientRecord]:
+    """Return saved client records, optionally filtered by coach username."""
+    return client_service.load_clients(coach_username=coach)
 
 
 @app.post("/clients", response_model=ClientRecord, tags=["clients"])
-async def save_client(profile: ClientProfile) -> ClientRecord:
+async def save_client(
+    profile: ClientProfile, coach: str | None = None
+) -> ClientRecord:
     """Create or update a client record (upsert by name).
 
     Accepts a ``ClientProfile`` directly; the backend generates ``saved_at``.
+    The optional ``coach`` query param assigns ownership.
     """
-    return client_service.upsert_client(profile)
+    return client_service.upsert_client(profile, coach_username=coach or "")
 
 
 @app.delete("/clients/{name}", tags=["clients"])
