@@ -13,10 +13,16 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
-from app import llm_service, logic, pdf_service
+from app import client_service, llm_service, logic, pdf_service
+from app.config import settings
 from app.models import (
     AssessmentInput,
     CalculationResponse,
+    ClientProfile,
+    ClientRecord,
+    LoginRequest,
+    LoginResponse,
+    MetricResult,
     ReportRequest,
     ReportResponse,
     TestInfo,
@@ -44,6 +50,58 @@ app.add_middleware(
 async def health_check() -> dict[str, str]:
     """Confirm the API is running."""
     return {"status": "ok"}
+
+
+@app.post("/auth/login", response_model=LoginResponse, tags=["auth"])
+async def login(request: LoginRequest) -> LoginResponse:
+    """Validate coach credentials against COACH_USERNAME / COACH_PASSWORD env vars.
+
+    Returns HTTP 401 if credentials do not match.
+    """
+    ok = (
+        request.username == settings.coach_username
+        and request.password == settings.coach_password
+    )
+    if not ok:
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+    return LoginResponse(authenticated=True)
+
+
+@app.get("/clients", response_model=list[ClientRecord], tags=["clients"])
+async def list_clients() -> list[ClientRecord]:
+    """Return all saved client records ordered by most recently saved first."""
+    return client_service.load_clients()
+
+
+@app.post("/clients", response_model=ClientRecord, tags=["clients"])
+async def save_client(profile: ClientProfile) -> ClientRecord:
+    """Create or update a client record (upsert by name).
+
+    Accepts a ``ClientProfile`` directly; the backend generates ``saved_at``.
+    """
+    return client_service.upsert_client(profile)
+
+
+@app.delete("/clients/{name}", tags=["clients"])
+async def remove_client(name: str) -> dict[str, bool]:
+    """Delete a client by name. Returns {deleted: false} if not found."""
+    deleted = client_service.delete_client(name)
+    return {"deleted": deleted}
+
+
+@app.post("/clients/{name}/assessment", response_model=ClientRecord, tags=["clients"])
+async def save_client_assessment(
+    name: str, results: list[MetricResult]
+) -> ClientRecord:
+    """Attach the latest assessment results to an existing client record.
+
+    Call this after /assess/calculate to persist results for future sessions.
+    Returns HTTP 404 if the client does not exist (save the profile first).
+    """
+    try:
+        return client_service.save_assessment(name, results)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.get("/tests/battery", response_model=list[TestInfo], tags=["assessment"])

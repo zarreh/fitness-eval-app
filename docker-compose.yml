@@ -34,6 +34,9 @@ services:
       # Always route Ollama calls to the ollama service, regardless of what
       # backend/.env sets for OLLAMA_BASE_URL.
       OLLAMA_BASE_URL: "http://ollama:11434"
+    volumes:
+      # Persist clients.json across container rebuilds.
+      - backend_data:/app/data
     depends_on:
       ollama:
         condition: service_healthy
@@ -94,3 +97,5 @@ services:
 volumes:
   # Persists downloaded Ollama models across container restarts and rebuilds.
   ollama_data:
+  # Persists clients.json (saved client history) across container rebuilds.
+  backend_data:

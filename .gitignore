@@ -41,3 +41,6 @@ Thumbs.db
 
 # WeasyPrint / generated files
 *.pdf
+
+# Runtime data — contains live client records; never commit
+backend/data/clients.json

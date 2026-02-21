@@ -3,10 +3,11 @@
 import httpx
 import streamlit as st
 
-from utils import show_client_sidebar, show_step_indicator
+from utils import require_login, show_client_sidebar, show_step_indicator
 
 st.set_page_config(page_title="Report", layout="wide")
 
+require_login()
 show_step_indicator(3)
 show_client_sidebar()
 

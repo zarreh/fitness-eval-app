@@ -82,3 +82,26 @@ class TestInfo(BaseModel):
     unit: str
     description: str
     computed: bool = False  # True for tests derived from client measurements (BMI, WHR)
+
+
+class LoginRequest(BaseModel):
+    """Credentials submitted to /auth/login."""
+
+    username: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    """Response from /auth/login."""
+
+    authenticated: bool
+
+
+class ClientRecord(BaseModel):
+    """A saved client profile stored on the backend."""
+
+    name: str
+    profile: ClientProfile
+    saved_at: datetime
+    last_assessment: Optional[list[MetricResult]] = None
+    assessed_at: Optional[datetime] = None

@@ -1,12 +1,15 @@
 """Assessment Input page — collects test scores and calls /assess/calculate."""
 
+from urllib.parse import quote
+
 import httpx
 import streamlit as st
 
-from utils import rating_badge_html, show_client_sidebar, show_step_indicator
+from utils import rating_badge_html, require_login, show_client_sidebar, show_step_indicator
 
 st.set_page_config(page_title="Assessment", layout="wide")
 
+require_login()
 show_step_indicator(2)
 show_client_sidebar()
 
@@ -164,6 +167,19 @@ if submitted:
     # Clear any stale report when scores are recalculated.
     for key in ("report", "pdf_bytes"):
         st.session_state.pop(key, None)
+
+    # Persist assessment results to backend so they survive page reloads.
+    client_name = client.get("name", "")
+    if client_name:
+        try:
+            httpx.post(
+                f"{API_URL}/clients/{quote(client_name, safe='')}/assessment",
+                json=calculation["results"],
+                timeout=10,
+            )
+        except Exception:
+            pass  # Non-fatal — results are already in session state.
+
     st.success("Ratings calculated. Proceed to the **Report** page.")
 
 

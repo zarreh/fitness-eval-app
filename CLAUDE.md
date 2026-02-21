@@ -27,17 +27,23 @@ Reference docs:
 | File | Responsibility |
 |------|---------------|
 | `backend/app/main.py` | FastAPI app, endpoint handlers (thin — delegate to services) |
-| `backend/app/models.py` | All Pydantic schemas (`ClientProfile`, `AssessmentInput`, `MetricResult`, etc.) |
+| `backend/app/models.py` | All Pydantic schemas (`ClientProfile`, `AssessmentInput`, `MetricResult`, `LoginRequest`, `ClientRecord`, etc.) |
 | `backend/app/logic.py` | Normative lookup, rating calculation, test registry |
 | `backend/app/llm_service.py` | LangChain LLM abstraction, prompt loading |
 | `backend/app/pdf_service.py` | WeasyPrint PDF generation |
+| `backend/app/client_service.py` | Client persistence — JSON CRUD backed by `backend/data/clients.json` |
 | `backend/app/prompts/` | Prompt templates (edit here, not in Python code) |
 | `backend/data/norms/` | One JSON file per test |
+| `backend/data/clients.json` | Persisted client records (auto-created; mounted as Docker volume `backend_data`) |
 
 ### API endpoints
 
 ```
 GET  /health
+POST /auth/login                → validate credentials, returns 401 on failure
+GET  /clients                   → list saved client records
+POST /clients                   → upsert client by name
+DELETE /clients/{name}          → delete client by name
 POST /assess/calculate          → logic engine returns ratings
 POST /assess/generate-report    → LLM returns narrative
 POST /assess/generate-pdf       → WeasyPrint returns PDF bytes
@@ -85,6 +91,8 @@ LLM_PROVIDER=ollama          # "ollama" or "openai"
 LLM_MODEL=llama3.2           # model name
 OPENAI_API_KEY=              # only needed when LLM_PROVIDER=openai
 OLLAMA_BASE_URL=http://localhost:11434
+COACH_USERNAME=admin         # login credentials (change before network exposure)
+COACH_PASSWORD=admin
 ```
 
 ## Code Style
@@ -187,6 +195,20 @@ Rating logic: value >= threshold for that tier. Check tiers top-down (excellent 
 2. Test with sample profiles before committing
 3. Never weaken the medical/legal guardrails in the system prompt
 
+## Common Patterns (continued)
+
+### Adding / changing auth behavior
+
+- Credentials come from `COACH_USERNAME` / `COACH_PASSWORD` env vars (read via `backend/app/config.py`)
+- Never read env vars directly in Streamlit — always call `POST /auth/login`
+- `require_login()` in `frontend/utils.py` guards every page — add it as the first call after imports
+
+### Persisting client data
+
+- All client CRUD goes through `backend/app/client_service.py` (load/upsert/delete backed by `backend/data/clients.json`)
+- The frontend calls `/clients` endpoints, never writes files directly
+- The `backend_data` Docker volume keeps `clients.json` across container rebuilds
+
 ## Don't
 
 - Don't add features not in the current phase of `docs/implementation-plan.md`
@@ -194,4 +216,3 @@ Rating logic: value >= threshold for that tier. Check tiers top-down (excellent 
 - Don't bypass the FastAPI layer from Streamlit — always go through HTTP endpoints
 - Don't hardcode normative data in Python — it belongs in JSON files
 - Don't let the LLM see raw test scores — only pre-calculated `MetricResult` objects
-- Don't add auth, database, or multi-tenancy until the relevant phase — POC assumes single-user, no auth

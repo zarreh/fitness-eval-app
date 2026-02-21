@@ -17,9 +17,14 @@ Write a structured summary with exactly these three sections:
 2-3 sentences giving a holistic view of {client_name}'s current fitness level based on the ratings above. Reference specific categories or results to ground the summary. Calibrate the tone to the overall fitness level — acknowledging excellence when warranted, or providing genuine encouragement when there is significant room to grow.
 
 ## Strengths
-Bullet points highlighting the areas where {client_name} performed well (Good, Very Good, or Excellent ratings). Be specific and encouraging — name the test and explain why it matters for their goals. If all results are in the lower tiers (Fair or Poor), reframe this section as "Early Wins to Build On" and identify whichever result is relatively strongest as a starting point.
+List the areas where {client_name} performed well (Good, Very Good, or Excellent ratings). Format EACH item as a markdown list item on its own line starting with `- ` (hyphen space). Be specific and encouraging — name the test and explain why it matters for their goals. If all results are in the lower tiers (Fair or Poor), reframe this section as "Early Wins to Build On" and identify whichever result is relatively strongest as a starting point.
+
+Example format:
+- Push-up Test (Excellent): [explanation relevant to goals]
+- Wall Sit (Good): [explanation relevant to goals]
 
 ## Areas for Improvement
-Bullet points identifying areas that would benefit from focused attention (Fair or Poor ratings). Frame each point constructively — as an opportunity, not a criticism. Connect each area to the client's stated goals where possible. If all results are Excellent or Very Good, reframe this section as "Maintaining Your Edge" and focus on what it takes to sustain high performance.
+List the areas that would benefit from focused attention (Fair or Poor ratings). Format EACH item as a markdown list item on its own line starting with `- ` (hyphen space). Frame each point constructively — as an opportunity, not a criticism. Connect each area to the client's stated goals where possible. If all results are Excellent or Very Good, reframe this section as "Maintaining Your Edge" and focus on what it takes to sustain high performance.
 
 Keep the tone professional and motivating. Do not perform any calculations, question the provided ratings, or recommend supplements or medical interventions.
+REMINDER: All list items must be on separate lines starting with `- `. Never place two items on the same line.

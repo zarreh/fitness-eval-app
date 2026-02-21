@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     llm_model: str = "llama3.2"
     ollama_base_url: str = "http://localhost:11434"
     openai_api_key: str = ""
+    coach_username: str = "admin"
+    coach_password: str = "admin"
 
     model_config = SettingsConfigDict(
         env_file=".env",

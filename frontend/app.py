@@ -9,6 +9,8 @@ import os
 
 import streamlit as st
 
+from utils import require_login, show_client_sidebar
+
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 st.set_page_config(
@@ -20,8 +22,9 @@ st.set_page_config(
 # Initialise persistent session state keys on first load.
 if "api_url" not in st.session_state:
     st.session_state["api_url"] = API_URL
-if "client_list" not in st.session_state:
-    st.session_state["client_list"] = []
+
+require_login()
+show_client_sidebar()
 
 # ── Landing page ──────────────────────────────────────────────────────────────
 st.title("Fitness Evaluation App")

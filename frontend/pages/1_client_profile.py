@@ -2,10 +2,11 @@
 
 import streamlit as st
 
-from utils import show_client_sidebar, show_step_indicator
+from utils import require_login, save_client_to_backend, show_client_sidebar, show_step_indicator
 
 st.set_page_config(page_title="Client Profile", layout="wide")
 
+require_login()
 show_step_indicator(1)
 show_client_sidebar()
 
@@ -154,15 +155,8 @@ if submitted:
         }
         st.session_state["client_profile"] = profile
 
-        # Add or update in the saved-clients list.
-        client_list: list[dict] = st.session_state.setdefault("client_list", [])
-        existing = next(
-            (i for i, c in enumerate(client_list) if c["name"] == profile["name"]), None
-        )
-        if existing is not None:
-            client_list[existing] = {"name": profile["name"], "profile": profile}
-        else:
-            client_list.append({"name": profile["name"], "profile": profile})
+        # Persist to backend (survives page reloads and container restarts).
+        save_client_to_backend(profile)
 
         # Clear downstream state when the profile changes.
         for key in ("calculation", "report", "pdf_bytes"):

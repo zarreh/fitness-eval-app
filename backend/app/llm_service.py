@@ -7,6 +7,7 @@ The LLM receives only pre-calculated MetricResult objects. It never sees
 raw test scores and never performs calculations.
 """
 
+import re
 from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
@@ -163,6 +164,53 @@ def _format_goals(goals: list[str]) -> str:
     )
 
 
+def _normalise_bullets(text: str) -> str:
+    """Convert Unicode bullet characters to markdown list items.
+
+    Some LLMs output • characters instead of markdown ``- `` list syntax.
+    This function normalises the output so the markdown renderer always
+    receives proper list items, ensuring correct rendering in both the
+    Streamlit UI and the WeasyPrint PDF.
+
+    It handles two cases:
+    - Lines that start with a bullet character: converted to ``- item``
+    - Multiple items on a single line separated by bullet characters: each
+      item is split onto its own line as a ``- item``
+
+    Args:
+        text: Raw LLM output string.
+
+    Returns:
+        Text with all ``•``/``·``/``●`` bullets replaced by ``- `` list items.
+    """
+    # Bullet characters the LLM might use.
+    _BULLET_RE = re.compile(r"[•·●]\s*")
+
+    result_lines: list[str] = []
+    for line in text.split("\n"):
+        if not _BULLET_RE.search(line):
+            result_lines.append(line)
+            continue
+
+        # Split the line on bullet characters.
+        parts = [p.strip() for p in _BULLET_RE.split(line) if p.strip()]
+        if not parts:
+            result_lines.append(line)
+            continue
+
+        # If the original line started with a bullet, treat all parts as items.
+        # Otherwise the first part is lead-in text; the rest are items.
+        if _BULLET_RE.match(line.lstrip()):
+            for part in parts:
+                result_lines.append(f"- {part}")
+        else:
+            result_lines.append(parts[0])
+            for part in parts[1:]:
+                result_lines.append(f"- {part}")
+
+    return "\n".join(result_lines)
+
+
 def generate_coach_summary(
     client: ClientProfile,
     results: list[MetricResult],
@@ -201,7 +249,7 @@ def generate_coach_summary(
             HumanMessage(content=user_message),
         ]
         response = llm.invoke(messages)
-        return str(response.content)
+        return _normalise_bullets(str(response.content))
     except Exception:
         return _FALLBACK_SUMMARY
 
@@ -238,6 +286,6 @@ def generate_workout_suggestions(
             HumanMessage(content=user_message),
         ]
         response = llm.invoke(messages)
-        return str(response.content)
+        return _normalise_bullets(str(response.content))
     except Exception:
         return _FALLBACK_WORKOUT

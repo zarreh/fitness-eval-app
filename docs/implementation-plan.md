@@ -383,14 +383,52 @@ For each test, create `backend/data/norms/{test}.json` with full age/gender brac
 - [ ] README with deployment instructions
 
 ### 8.4 Phase 6 Wrap-up
-- [ ] Deploy to server
-- [ ] Full end-to-end test on deployed instance
-- [ ] Commit + tag: `v0.6.0-deployed`
-- [ ] 🎉 **POC Complete**
+- [x] Deploy to server
+- [x] Full end-to-end test on deployed instance
+- [x] Commit + tag: `v0.6.0-deployed`
 
 ---
 
-## 9. Post-POC Roadmap (Final Phase — High Level)
+## 9. Phase 7 — Auth, Client Persistence & PDF Fix
+
+**Goal:** Harden the POC for real demo use: protect the app with a login page, persist client history across browser sessions and container restarts, and fix PDF bullet-point rendering.
+
+### 9.1 PDF Bullet Point Fix
+
+**Problem:** WeasyPrint renders list bullets with `list-style-position: outside`. Setting `padding: 0` on `.narrative ul/ol` removes the left-padding space for the markers, so they are clipped and the list appears as flowing text.
+
+- [x] In `backend/templates/report.html`, change `.narrative ul, .narrative ol` from `padding: 0` to `padding-left: 1.5em`
+- [x] Add explicit `list-style-type: disc` / `list-style-type: decimal` declarations
+
+### 9.2 Coach Login
+
+- [x] Add `coach_username` / `coach_password` fields to `backend/app/config.py` (defaults: `admin` / `admin`; overridable via env vars)
+- [x] Add `LoginRequest` and `LoginResponse` Pydantic models to `backend/app/models.py`
+- [x] Add `POST /auth/login` endpoint to `backend/app/main.py` — returns HTTP 401 on bad credentials
+- [x] Add `require_login()` utility to `frontend/utils.py` — shows a centered login form and calls `st.stop()` if not authenticated
+- [x] Call `require_login()` as the first statement in `app.py` and all three pages
+- [x] Add logout button at the bottom of `show_client_sidebar()`
+- [x] Add `COACH_USERNAME` and `COACH_PASSWORD` to `.env.example`
+
+### 9.3 Client History Persistence
+
+- [x] Create `backend/app/client_service.py` — JSON-file CRUD with atomic writes (`os.replace`)
+- [x] Add `ClientRecord` Pydantic model to `backend/app/models.py`
+- [x] Add `GET /clients`, `POST /clients`, `DELETE /clients/{name}` endpoints to `backend/app/main.py`
+- [x] Update `frontend/utils.py` — `show_client_sidebar()` fetches from `GET /clients` on every render; add `save_client_to_backend()` and `_delete_client_from_backend()` helpers
+- [x] Update `frontend/pages/1_client_profile.py` — call `save_client_to_backend()` on profile save
+- [x] Add `backend_data` named volume to `docker-compose.yml` (mounts `/app/data` in backend container)
+
+### 9.4 Phase 7 Wrap-up
+- [ ] Run `make test` — all tests pass
+- [ ] Manual smoke test: login → save client → reload tab → client still in sidebar
+- [ ] Manual smoke test: generate PDF → confirm bullet points render correctly
+- [ ] Commit + tag: `v0.7.0`
+- [ ] 🎉 **POC Demo-ready**
+
+---
+
+## 10. Post-POC Roadmap (Final Phase — High Level)
 
 These are **not** part of the POC implementation. Listed for planning awareness only.
 
@@ -409,7 +447,7 @@ These are **not** part of the POC implementation. Listed for planning awareness 
 
 ---
 
-## 10. Risk Register
+## 11. Risk Register
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
@@ -422,14 +460,16 @@ These are **not** part of the POC implementation. Listed for planning awareness 
 
 ---
 
-## 11. Definition of Done (POC)
+## 12. Definition of Done (POC)
 
 The POC is complete when:
 
-- [ ] A coach can input a client profile with all 8 test scores
-- [ ] The system calculates ratings/percentiles for all tests
-- [ ] An LLM generates a coherent summary + workout suggestions
-- [ ] A professional PDF report is downloadable
-- [ ] The app runs in Docker Compose on a Linux server
-- [ ] OpenAI API is used for deployed LLM calls
-- [ ] Code is clean, documented, and in a GitHub repo
+- [x] A coach can input a client profile with all 8 test scores
+- [x] The system calculates ratings/percentiles for all tests
+- [x] An LLM generates a coherent summary + workout suggestions
+- [x] A professional PDF report is downloadable (with correct bullet-point rendering)
+- [x] The app runs in Docker Compose on a Linux server
+- [x] OpenAI API is used for deployed LLM calls
+- [x] Code is clean, documented, and in a GitHub repo
+- [ ] Coach login protects the app (env-var configurable credentials)
+- [ ] Client history persists across page reloads and container restarts
