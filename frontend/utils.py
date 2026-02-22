@@ -143,6 +143,12 @@ def inject_custom_css() -> None:
 
         /* ── Alerts / info boxes ── */
         div[data-testid="stAlert"] {{ border-radius: 8px; }}
+
+        {"/* ── RTL markdown fix ── */" if is_rtl else ""}
+        {"[data-testid='stMarkdownContainer'] { direction: rtl; text-align: right; }" if is_rtl else ""}
+        {"[data-testid='stMarkdownContainer'] ul, [data-testid='stMarkdownContainer'] ol { padding-right: 1.5em; padding-left: 0; }" if is_rtl else ""}
+        {"[data-testid='stMarkdownContainer'] li { text-align: right; }" if is_rtl else ""}
+        {"[data-testid='stMarkdownContainer'] h1, [data-testid='stMarkdownContainer'] h2, [data-testid='stMarkdownContainer'] h3 { text-align: right; }" if is_rtl else ""}
         </style>""",
         unsafe_allow_html=True,
     )
