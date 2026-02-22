@@ -14,8 +14,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db_models import Assessment, BodyMeasurement, Client, Coach
+from app.logic import classify_body_fat, compute_body_fat_pct
 from app.models import (
     AssessmentSnapshot,
+    BodyMeasurementInput,
+    BodyMeasurementRecord,
     ClientProfile,
     ClientRecord,
     MetricResult,
@@ -358,6 +361,126 @@ async def get_assessment_history(
         )
         for a in result.scalars().all()
     ]
+
+
+# ── Body Measurements ─────────────────────────────────────────────────────────
+
+
+def _row_to_record(m: BodyMeasurement) -> BodyMeasurementRecord:
+    return BodyMeasurementRecord(
+        id=m.id,
+        measured_at=m.measured_at,
+        weight_kg=m.weight_kg,
+        waist_cm=m.waist_cm,
+        hip_cm=m.hip_cm,
+        neck_cm=m.neck_cm,
+        bmi=m.bmi,
+        body_fat_pct=m.body_fat_pct,
+        body_fat_rating=m.body_fat_rating,
+        fat_mass_kg=m.fat_mass_kg,
+        lean_mass_kg=m.lean_mass_kg,
+    )
+
+
+async def add_measurement(
+    db: AsyncSession,
+    coach_username: str,
+    client_name: str,
+    measurement: BodyMeasurementInput,
+) -> BodyMeasurementRecord:
+    """Log a new body-measurement snapshot for a client.
+
+    Auto-computes BMI (from client height + submitted weight) and body fat %
+    (US Navy formula, from height + waist + neck + optional hip).
+
+    Args:
+        db: Active async database session.
+        coach_username: Owning coach's username.
+        client_name: Client name (case-sensitive).
+        measurement: Raw measurement inputs submitted by the coach.
+
+    Returns:
+        The newly created ``BodyMeasurementRecord`` with computed fields.
+
+    Raises:
+        ValueError: If no matching client exists for this coach.
+    """
+    client = await _get_client_row(db, coach_username, client_name)
+    if not client:
+        raise ValueError(
+            f"Client '{client_name}' not found for coach '{coach_username}'."
+        )
+
+    # BMI — requires client height (static) + submitted weight.
+    bmi: float | None = None
+    if client.height_cm and measurement.weight_kg:
+        h_m = client.height_cm / 100.0
+        bmi = round(measurement.weight_kg / (h_m * h_m), 1)
+
+    # Body fat % — US Navy formula.
+    bf_pct: float | None = None
+    bf_rating: str | None = None
+    if client.height_cm and measurement.waist_cm and measurement.neck_cm:
+        bf_pct = compute_body_fat_pct(
+            gender=client.gender,
+            height_cm=client.height_cm,
+            waist_cm=measurement.waist_cm,
+            neck_cm=measurement.neck_cm,
+            hip_cm=measurement.hip_cm,
+        )
+        if bf_pct is not None:
+            bf_rating = classify_body_fat(bf_pct, client.gender)
+
+    # Fat and lean mass.
+    fat_mass: float | None = None
+    lean_mass: float | None = None
+    if measurement.weight_kg and bf_pct is not None:
+        fat_mass = round(measurement.weight_kg * bf_pct / 100, 1)
+        lean_mass = round(measurement.weight_kg - fat_mass, 1)
+
+    row = BodyMeasurement(
+        client_id=client.id,
+        measured_at=datetime.now(tz=timezone.utc),
+        weight_kg=measurement.weight_kg,
+        waist_cm=measurement.waist_cm,
+        hip_cm=measurement.hip_cm,
+        neck_cm=measurement.neck_cm,
+        bmi=bmi,
+        body_fat_pct=bf_pct,
+        body_fat_rating=bf_rating,
+        fat_mass_kg=fat_mass,
+        lean_mass_kg=lean_mass,
+    )
+    db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    return _row_to_record(row)
+
+
+async def get_measurements(
+    db: AsyncSession,
+    coach_username: str,
+    client_name: str,
+) -> list[BodyMeasurementRecord]:
+    """Return all body-measurement snapshots for a client, newest first.
+
+    Args:
+        db: Active async database session.
+        coach_username: Owning coach's username.
+        client_name: Client name (case-sensitive).
+
+    Returns:
+        List of ``BodyMeasurementRecord`` objects, or empty list if not found.
+    """
+    client = await _get_client_row(db, coach_username, client_name)
+    if not client:
+        return []
+    result = await db.execute(
+        select(BodyMeasurement)
+        .where(BodyMeasurement.client_id == client.id)
+        .order_by(BodyMeasurement.measured_at.desc())
+    )
+    return [_row_to_record(m) for m in result.scalars().all()]
 
 
 # ── Progress ──────────────────────────────────────────────────────────────────

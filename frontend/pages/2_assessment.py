@@ -335,6 +335,7 @@ if "calculation" in st.session_state:
                     value=raw,
                     thresholds=r["thresholds"],
                     inverted=r.get("inverted", False),
+                    is_rtl=st.session_state.get("lang") == "fa",
                 )
 
             col.markdown(

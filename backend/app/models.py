@@ -13,11 +13,12 @@ class ClientProfile(BaseModel):
     goals: list[str]
     notes: Optional[str] = None
 
-    # Body measurements — optional; used to auto-compute BMI and WHR.
+    # Body measurements — optional; used to auto-compute BMI, WHR, and body fat %.
     height_cm: Optional[float] = None
     weight_kg: Optional[float] = None
     waist_cm: Optional[float] = None
     hip_cm: Optional[float] = None
+    neck_cm: Optional[float] = None
 
 
 class AssessmentInput(BaseModel):

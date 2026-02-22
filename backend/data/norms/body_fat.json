@@ -1,0 +1,27 @@
+{
+  "test_name": "Body Fat Percentage",
+  "unit": "%",
+  "category": "body_comp",
+  "source": "American Council on Exercise (ACE) Body Fat Classification",
+  "formula": "US Navy circumference method",
+  "inverted": true,
+  "note": "Computed by logic.py — not a norms-lookup test. This file documents the thresholds used for the range bar.",
+  "thresholds": {
+    "male": {
+      "excellent": 13.0,
+      "very_good": 17.0,
+      "good": 24.0,
+      "fair": 30.0,
+      "poor_high": 60.0,
+      "poor_low": 6.0
+    },
+    "female": {
+      "excellent": 20.0,
+      "very_good": 24.0,
+      "good": 31.0,
+      "fair": 38.0,
+      "poor_high": 60.0,
+      "poor_low": 14.0
+    }
+  }
+}

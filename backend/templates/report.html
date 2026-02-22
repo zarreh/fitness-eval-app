@@ -405,8 +405,17 @@
     }
     .range-bar-zone {
       height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       box-sizing: border-box;
       border-right: 0.5pt solid rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .range-bar-zone span {
+      font-size: 5pt;
+      color: rgba(0,0,0,0.4);
+      white-space: nowrap;
     }
     .range-bar-marker {
       position: absolute;
@@ -416,14 +425,16 @@
       line-height: 1;
       color: var(--primary);
     }
-    .range-bar-labels {
-      display: flex;
-      font-size: 6pt;
-      color: var(--text-muted);
+    .range-bar-thresh {
+      position: relative;
+      height: 7pt;
       margin-top: 1pt;
     }
-    .range-bar-labels span {
-      flex: 1;
+    .range-bar-thresh span {
+      position: absolute;
+      transform: translateX(-50%);
+      font-size: 5pt;
+      color: #aaa;
     }
 
     /* ══════════════════════════════════════════════════════
@@ -600,14 +611,14 @@
             <div class="range-bar-wrap">
               <div class="range-bar">
                 {% for zone in bar.zones %}
-                <div class="range-bar-zone" style="width:{{ zone.width_pct | round(1) }}%;background:{{ zone.color }};"></div>
+                <div class="range-bar-zone" style="width:{{ zone.width_pct | round(1) }}%;background:{{ zone.color }};"><span>{{ zone.abbr }}</span></div>
                 {% endfor %}
               </div>
               <div class="range-bar-marker" style="left:{{ bar.marker_pct | round(1) }}%;">&#9660;</div>
-              <div class="range-bar-labels">
-                <span style="text-align:left;">{{ pdf.get('poor_label', 'Poor') }}</span>
-                <span style="text-align:center;">{{ pdf.get('good_label', 'Good') }}</span>
-                <span style="text-align:right;">{{ pdf.get('excellent_label', 'Excellent') }}</span>
+              <div class="range-bar-thresh">
+                {% for lbl in bar.threshold_labels %}
+                <span style="left:{{ lbl.pct | round(1) }}%;">{{ lbl.val }}</span>
+                {% endfor %}
               </div>
             </div>
           </td>

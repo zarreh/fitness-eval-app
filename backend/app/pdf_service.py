@@ -141,26 +141,33 @@ def _build_progress_map(
 
 def _compute_range_bar_data(
     result: MetricResult,
+    direction: str = "ltr",
 ) -> dict[str, object] | None:
-    """Compute zone widths and marker position for a CSS range bar.
+    """Compute zone widths, marker position, and threshold labels for a CSS range bar.
 
     Args:
         result: MetricResult with thresholds populated.
+        direction: ``"ltr"`` or ``"rtl"``. RTL reverses zone order and mirrors
+            the marker so Poor appears on the right.
 
     Returns:
-        Dict with zones (list of {color, width_pct}) and marker_pct,
-        or None if thresholds are not available.
+        Dict with:
+          - ``zones``: list of ``{color, width_pct, abbr}``
+          - ``marker_pct``: float 0–100
+          - ``threshold_labels``: list of ``{pct, val}`` for boundary numbers
+        or ``None`` if thresholds are not available.
     """
     if not result.thresholds:
         return None
 
-    t = result.thresholds
-    t_fair = t["fair"]
-    t_good = t["good"]
-    t_vgood = t["very_good"]
-    t_excellent = t["excellent"]
+    th = result.thresholds
+    t_fair = th["fair"]
+    t_good = th["good"]
+    t_vgood = th["very_good"]
+    t_excellent = th["excellent"]
 
     zone_colors = ["#f8d7da", "#fff3cd", "#c8f0c8", "#b8e8c8", "#d4edda"]
+    zone_abbrs = ["Poor", "Fair", "Good", "V.Good", "Exc."]
 
     if result.inverted:
         bar_min = min(t_excellent * 0.85, result.raw_value * 0.85)
@@ -188,26 +195,54 @@ def _compute_range_bar_data(
         marker_pct = (result.raw_value - bar_min) / total * 100
 
     widths = [max(w, 0.5) for w in widths]
-    marker_pct = max(1, min(99, marker_pct))
+    marker_pct = max(1.0, min(99.0, marker_pct))
 
-    zones = [{"color": c, "width_pct": w} for c, w in zip(zone_colors, widths)]
-    return {"zones": zones, "marker_pct": marker_pct}
+    # Threshold boundary positions (cumulative zone widths after zones 0..3).
+    threshold_vals = [t_fair, t_good, t_vgood, t_excellent]
+    cum, cumulative_pcts = 0.0, []
+    for w in widths[:4]:
+        cum += w
+        cumulative_pcts.append(cum)
+
+    if direction == "rtl":
+        zone_colors = list(reversed(zone_colors))
+        zone_abbrs = list(reversed(zone_abbrs))
+        widths = list(reversed(widths))
+        marker_pct = 100.0 - marker_pct
+        marker_pct = max(1.0, min(99.0, marker_pct))
+        cumulative_pcts = [100.0 - p for p in reversed(cumulative_pcts)]
+        threshold_vals = list(reversed(threshold_vals))
+
+    def _fmt(v: float) -> str:
+        return str(int(v)) if v == int(v) else f"{v:.1f}"
+
+    zones = [
+        {"color": c, "width_pct": w, "abbr": a}
+        for c, w, a in zip(zone_colors, widths, zone_abbrs)
+    ]
+    threshold_labels = [
+        {"pct": p, "val": _fmt(v)}
+        for p, v in zip(cumulative_pcts, threshold_vals)
+    ]
+    return {"zones": zones, "marker_pct": marker_pct, "threshold_labels": threshold_labels}
 
 
 def _build_range_bars(
     results: list[MetricResult],
+    direction: str = "ltr",
 ) -> dict[str, dict[str, object]]:
     """Build a test_name → range bar data lookup for the PDF template.
 
     Args:
         results: All MetricResult objects for the report.
+        direction: ``"ltr"`` or ``"rtl"`` — passed to ``_compute_range_bar_data``.
 
     Returns:
         Dict mapping test_name to its range bar data.
     """
     bars: dict[str, dict[str, object]] = {}
     for r in results:
-        bar_data = _compute_range_bar_data(r)
+        bar_data = _compute_range_bar_data(r, direction=direction)
         if bar_data:
             bars[r.test_name] = bar_data
     return bars
@@ -225,6 +260,7 @@ def render_report_pdf(report: ReportResponse) -> bytes:
     i18n = load_translations(report.language)
     cat_labels: dict[str, str] = cast(dict[str, str], i18n.get("categories", {}))
     rating_labels: dict[str, str] = cast(dict[str, str], i18n.get("ratings", {}))
+    direction: str = str(i18n.get("direction", "ltr"))
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -241,7 +277,7 @@ def render_report_pdf(report: ReportResponse) -> bytes:
         category_summary=_category_summary(report.results, cat_labels),
         category_groups=_group_by_category(report.results, cat_labels),
         progress_map=_build_progress_map(report.progress),
-        range_bars=_build_range_bars(report.results),
+        range_bars=_build_range_bars(report.results, direction=direction),
     )
     pdf_bytes: bytes = HTML(
         string=html_content, base_url=str(TEMPLATES_DIR)

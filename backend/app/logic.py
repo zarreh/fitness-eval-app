@@ -5,6 +5,7 @@ and MetricResult construction. The LLM never touches this layer.
 """
 
 import json
+import math
 from pathlib import Path
 
 from app.models import AssessmentInput, ClientProfile, MetricResult, TestInfo
@@ -246,6 +247,141 @@ def classify_whr(whr: float, gender: str) -> str:
             return "Poor"
 
 
+def compute_body_fat_pct(
+    gender: str,
+    height_cm: float,
+    waist_cm: float,
+    neck_cm: float,
+    hip_cm: float | None = None,
+) -> float | None:
+    """Estimate body fat percentage using the US Navy circumference formula.
+
+    Male:   86.010 × log10(waist − neck) − 70.041 × log10(height) + 36.76
+    Female: 163.205 × log10(waist + hip − neck) − 97.684 × log10(height) − 78.387
+
+    Args:
+        gender: "male" or "female".
+        height_cm: Standing height in centimetres.
+        waist_cm: Waist circumference in centimetres (measured at navel).
+        neck_cm: Neck circumference in centimetres.
+        hip_cm: Hip circumference in centimetres (required for females).
+
+    Returns:
+        Body fat percentage rounded to one decimal, or ``None`` when the
+        inputs produce an invalid logarithm argument (waist ≤ neck).
+    """
+    try:
+        if gender == "male":
+            diff = waist_cm - neck_cm
+            if diff <= 0:
+                return None
+            return round(
+                86.010 * math.log10(diff) - 70.041 * math.log10(height_cm) + 36.76,
+                1,
+            )
+        else:
+            if hip_cm is None:
+                return None
+            diff = waist_cm + hip_cm - neck_cm
+            if diff <= 0:
+                return None
+            return round(
+                163.205 * math.log10(diff)
+                - 97.684 * math.log10(height_cm)
+                - 78.387,
+                1,
+            )
+    except (ValueError, ArithmeticError):
+        return None
+
+
+def classify_body_fat(body_fat_pct: float, gender: str) -> str:
+    """Classify body fat percentage using ACE (American Council on Exercise) tiers.
+
+    Args:
+        body_fat_pct: Body fat percentage.
+        gender: "male" or "female".
+
+    Returns:
+        Rating string ("Excellent" through "Poor").
+    """
+    if gender == "male":
+        if body_fat_pct < 6:
+            return "Poor"  # Essential fat / critically low
+        elif body_fat_pct <= 13:
+            return "Excellent"
+        elif body_fat_pct <= 17:
+            return "Very Good"
+        elif body_fat_pct <= 24:
+            return "Good"
+        elif body_fat_pct <= 30:
+            return "Fair"
+        else:
+            return "Poor"
+    else:
+        if body_fat_pct < 14:
+            return "Poor"  # Essential fat / critically low
+        elif body_fat_pct <= 20:
+            return "Excellent"
+        elif body_fat_pct <= 24:
+            return "Very Good"
+        elif body_fat_pct <= 31:
+            return "Good"
+        elif body_fat_pct <= 38:
+            return "Fair"
+        else:
+            return "Poor"
+
+
+def _compute_body_fat(client: ClientProfile) -> MetricResult:
+    """Compute body fat % from client measurements and return a rated MetricResult.
+
+    Args:
+        client: ClientProfile with height_cm, waist_cm, neck_cm (and hip_cm for females).
+
+    Returns:
+        MetricResult for body fat percentage.
+    """
+    bf_pct = compute_body_fat_pct(
+        gender=client.gender,
+        height_cm=client.height_cm,  # type: ignore[arg-type]
+        waist_cm=client.waist_cm,  # type: ignore[arg-type]
+        neck_cm=client.neck_cm,  # type: ignore[arg-type]
+        hip_cm=client.hip_cm,
+    )
+    if bf_pct is None:
+        bf_pct = 0.0
+    rating = classify_body_fat(bf_pct, client.gender)
+
+    if client.gender == "male":
+        thresholds = {
+            "excellent": 13.0,
+            "very_good": 17.0,
+            "good": 24.0,
+            "fair": 30.0,
+            "poor": 60.0,
+        }
+    else:
+        thresholds = {
+            "excellent": 20.0,
+            "very_good": 24.0,
+            "good": 31.0,
+            "fair": 38.0,
+            "poor": 60.0,
+        }
+
+    return MetricResult(
+        test_name="Body Fat Percentage",
+        raw_value=bf_pct,
+        unit="%",
+        rating=rating,
+        category="body_comp",
+        description=f"Body Fat %: {bf_pct}% — {rating} (US Navy formula)",
+        thresholds=thresholds,
+        inverted=True,
+    )
+
+
 def calculate_single_test(
     test_id: str,
     value: float,
@@ -400,6 +536,24 @@ def calculate_all_tests(input: AssessmentInput) -> list[MetricResult]:
     # Auto-compute WHR if waist and hip measurements are provided.
     if input.client.waist_cm and input.client.hip_cm:
         results.append(_compute_whr(input.client))
+
+    # Auto-compute body fat % when the US Navy formula inputs are present.
+    # Male needs height + waist + neck; female additionally needs hip.
+    _bf_male_ready = (
+        input.client.gender == "male"
+        and input.client.height_cm
+        and input.client.waist_cm
+        and input.client.neck_cm
+    )
+    _bf_female_ready = (
+        input.client.gender == "female"
+        and input.client.height_cm
+        and input.client.waist_cm
+        and input.client.neck_cm
+        and input.client.hip_cm
+    )
+    if _bf_male_ready or _bf_female_ready:
+        results.append(_compute_body_fat(input.client))
 
     return results
 

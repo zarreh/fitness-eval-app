@@ -507,17 +507,23 @@ def render_range_bar_html(
     value: float,
     thresholds: dict[str, float],
     inverted: bool = False,
+    is_rtl: bool = False,
 ) -> str:
     """Return inline HTML for a colored range bar with a marker at the value.
 
-    The bar has 5 zones (Poor → Excellent) with a triangle marker showing
-    where the client's value falls. For inverted tests (lower = better),
-    the value axis is flipped so the marker still moves right for improvement.
+    The bar has 5 zones (Poor → Excellent) with:
+    - abbreviated rating labels centered inside each zone
+    - a triangle marker showing where the client's value falls
+    - threshold boundary numbers below the bar
+
+    For inverted tests (lower = better) the value axis is flipped.
+    For RTL languages the zone order is reversed and the marker is mirrored.
 
     Args:
         value: The client's raw test result.
         thresholds: Dict with keys excellent, very_good, good, fair, poor.
         inverted: If True, lower values are better (e.g. step test BPM).
+        is_rtl: If True, render for a right-to-left language (Farsi).
 
     Returns:
         HTML string for a styled range bar.
@@ -526,21 +532,19 @@ def render_range_bar_html(
     t_good = thresholds["good"]
     t_vgood = thresholds["very_good"]
     t_excellent = thresholds["excellent"]
-    zone_colors = [
+
+    zone_defs = [
         ("#f8d7da", "Poor"),
         ("#fff3cd", "Fair"),
         ("#c8f0c8", "Good"),
         ("#b8e8c8", "V.Good"),
-        ("#d4edda", "Excellent"),
+        ("#d4edda", "Exc."),
     ]
 
     if inverted:
-        # Lower is better. Flip axis so low values appear on the right (Excellent).
         bar_min = min(t_excellent * 0.85, value * 0.85)
         bar_max = max(t_fair * 1.2, value * 1.1)
-        total = bar_max - bar_min
-        if total <= 0:
-            total = 1
+        total = bar_max - bar_min or 1
         widths = [
             (bar_max - t_fair) / total * 100,
             (t_fair - t_good) / total * 100,
@@ -550,12 +554,9 @@ def render_range_bar_html(
         ]
         marker_pct = (bar_max - value) / total * 100
     else:
-        # Higher is better. Standard axis.
         bar_min = 0.0
         bar_max = max(t_excellent * 1.25, value * 1.1)
-        total = bar_max - bar_min
-        if total <= 0:
-            total = 1
+        total = bar_max - bar_min or 1
         widths = [
             (t_fair - bar_min) / total * 100,
             (t_good - t_fair) / total * 100,
@@ -565,33 +566,56 @@ def render_range_bar_html(
         ]
         marker_pct = (value - bar_min) / total * 100
 
-    # Clamp widths and marker.
     widths = [max(w, 0.5) for w in widths]
     marker_pct = max(1, min(99, marker_pct))
 
+    # Cumulative zone-boundary positions and their threshold values (LTR order).
+    threshold_vals = [t_fair, t_good, t_vgood, t_excellent]
+    cum, cumulative_pcts = 0.0, []
+    for w in widths[:4]:
+        cum += w
+        cumulative_pcts.append(cum)
+
+    if is_rtl:
+        zone_defs = list(reversed(zone_defs))
+        widths = list(reversed(widths))
+        marker_pct = 100.0 - marker_pct
+        marker_pct = max(1, min(99, marker_pct))
+        # Mirror cumulative positions and reverse values to match new zone order.
+        cumulative_pcts = [100.0 - p for p in reversed(cumulative_pcts)]
+        threshold_vals = list(reversed(threshold_vals))
+
+    def _fmt(v: float) -> str:
+        return str(int(v)) if v == int(v) else f"{v:.1f}"
+
     zones_html = ""
-    for (color, label), w in zip(zone_colors, widths):
+    for (color, label), w in zip(zone_defs, widths):
         zones_html += (
             f'<div style="width:{w:.1f}%;background:{color};height:100%;'
-            f'display:inline-block;box-sizing:border-box;'
-            f'border-right:1px solid rgba(0,0,0,0.08);"></div>'
+            f'display:flex;align-items:center;justify-content:center;'
+            f'box-sizing:border-box;border-right:1px solid rgba(0,0,0,0.08);'
+            f'overflow:hidden;">'
+            f'<span style="font-size:0.42em;color:rgba(0,0,0,0.45);'
+            f'white-space:nowrap;">{label}</span></div>'
         )
 
+    thresh_html = "".join(
+        f'<span style="position:absolute;left:{p:.1f}%;'
+        f'transform:translateX(-50%);font-size:0.48em;color:#999;">'
+        f'{_fmt(v)}</span>'
+        for p, v in zip(cumulative_pcts, threshold_vals)
+    )
+
     return (
-        f'<div style="position:relative;width:100%;margin:4px 0 2px 0;">'
-        # Zones bar
+        f'<div style="position:relative;width:100%;margin:4px 0 14px 0;">'
         f'<div style="display:flex;height:14px;border-radius:4px;'
         f'overflow:hidden;border:1px solid #ddd;">{zones_html}</div>'
-        # Marker triangle
         f'<div style="position:absolute;top:-2px;left:{marker_pct:.1f}%;'
         f'transform:translateX(-50%);font-size:12px;line-height:1;'
         f'color:#1a1a2e;">&#9660;</div>'
-        # Labels
-        f'<div style="display:flex;font-size:0.55em;color:#888;margin-top:1px;">'
-        f'<span style="flex:1;text-align:left;">{_tr("Poor")}</span>'
-        f'<span style="flex:1;text-align:center;">{_tr("Good")}</span>'
-        f'<span style="flex:1;text-align:right;">{_tr("Excellent")}</span>'
-        f'</div></div>'
+        f'<div style="position:relative;height:10px;margin-top:1px;">'
+        f'{thresh_html}</div>'
+        f'</div>'
     )
 
 

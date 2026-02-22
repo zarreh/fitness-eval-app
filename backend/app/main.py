@@ -29,6 +29,8 @@ from app.database import AsyncSessionLocal, create_tables, get_db
 from app.models import (
     AssessmentInput,
     AssessmentSnapshot,
+    BodyMeasurementInput,
+    BodyMeasurementRecord,
     CalculationResponse,
     ClientProfile,
     ClientRecord,
@@ -274,6 +276,48 @@ async def export_client_history_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@app.get(
+    "/clients/{name}/measurements",
+    response_model=list[BodyMeasurementRecord],
+    tags=["clients"],
+)
+async def list_measurements(
+    name: str, coach: str, db: AsyncSession = Depends(get_db)
+) -> list[BodyMeasurementRecord]:
+    """Return all body-measurement snapshots for a client, newest first.
+
+    Returns an empty list (not 404) if no measurements have been logged yet.
+    Returns HTTP 404 if the client does not exist for this coach.
+    """
+    client_row = await db_service._get_client_row(db, coach, name)
+    if client_row is None:
+        raise HTTPException(status_code=404, detail=f"Client '{name}' not found.")
+    return await db_service.get_measurements(db, coach, name)
+
+
+@app.post(
+    "/clients/{name}/measurements",
+    response_model=BodyMeasurementRecord,
+    tags=["clients"],
+)
+async def log_measurement(
+    name: str,
+    measurement: BodyMeasurementInput,
+    coach: str,
+    db: AsyncSession = Depends(get_db),
+) -> BodyMeasurementRecord:
+    """Log a new body-measurement snapshot for an existing client.
+
+    Auto-computes BMI, body fat % (US Navy formula), fat mass, and lean mass
+    from the submitted values combined with the client's stored height.
+    Returns HTTP 404 if the client does not exist for this coach.
+    """
+    try:
+        return await db_service.add_measurement(db, coach, name, measurement)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Tests & Assessment ────────────────────────────────────────────────────────
