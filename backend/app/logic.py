@@ -270,24 +270,30 @@ def compute_body_fat_pct(
         Body fat percentage rounded to one decimal, or ``None`` when the
         inputs produce an invalid logarithm argument (waist ≤ neck).
     """
+    # The US Navy formula constants were derived from inch measurements.
+    height_in = height_cm / 2.54
+    waist_in = waist_cm / 2.54
+    neck_in = neck_cm / 2.54
+
     try:
         if gender == "male":
-            diff = waist_cm - neck_cm
+            diff = waist_in - neck_in
             if diff <= 0:
                 return None
             return round(
-                86.010 * math.log10(diff) - 70.041 * math.log10(height_cm) + 36.76,
+                86.010 * math.log10(diff) - 70.041 * math.log10(height_in) + 36.76,
                 1,
             )
         else:
             if hip_cm is None:
                 return None
-            diff = waist_cm + hip_cm - neck_cm
+            hip_in = hip_cm / 2.54
+            diff = waist_in + hip_in - neck_in
             if diff <= 0:
                 return None
             return round(
                 163.205 * math.log10(diff)
-                - 97.684 * math.log10(height_cm)
+                - 97.684 * math.log10(height_in)
                 - 78.387,
                 1,
             )

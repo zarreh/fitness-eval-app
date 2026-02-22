@@ -257,11 +257,31 @@ async def upsert_client(
         await db.flush()  # Populate client.id before creating the measurement row.
 
     # Log a body-measurement snapshot whenever measurement values are present.
-    if any([profile.weight_kg, profile.waist_cm, profile.hip_cm]):
+    if any([profile.weight_kg, profile.waist_cm, profile.hip_cm, profile.neck_cm]):
         bmi: float | None = None
         if profile.height_cm and profile.weight_kg:
             h_m = profile.height_cm / 100.0
             bmi = round(profile.weight_kg / (h_m * h_m), 1)
+
+        bf_pct: float | None = None
+        bf_rating: str | None = None
+        if profile.height_cm and profile.waist_cm and profile.neck_cm:
+            bf_pct = compute_body_fat_pct(
+                gender=profile.gender,
+                height_cm=profile.height_cm,
+                waist_cm=profile.waist_cm,
+                neck_cm=profile.neck_cm,
+                hip_cm=profile.hip_cm,
+            )
+            if bf_pct is not None:
+                bf_rating = classify_body_fat(bf_pct, profile.gender)
+
+        fat_mass: float | None = None
+        lean_mass: float | None = None
+        if profile.weight_kg and bf_pct is not None:
+            fat_mass = round(profile.weight_kg * bf_pct / 100, 1)
+            lean_mass = round(profile.weight_kg - fat_mass, 1)
+
         db.add(
             BodyMeasurement(
                 client_id=client.id,
@@ -269,7 +289,12 @@ async def upsert_client(
                 weight_kg=profile.weight_kg,
                 waist_cm=profile.waist_cm,
                 hip_cm=profile.hip_cm,
+                neck_cm=profile.neck_cm,
                 bmi=bmi,
+                body_fat_pct=bf_pct,
+                body_fat_rating=bf_rating,
+                fat_mass_kg=fat_mass,
+                lean_mass_kg=lean_mass,
             )
         )
 

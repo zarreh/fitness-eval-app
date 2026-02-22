@@ -56,6 +56,11 @@ if authenticated:
                 icon="👤",
             ),
             st.Page(
+                "pages/1b_body_measures.py",
+                title=t("step_body_measures"),
+                icon="📏",
+            ),
+            st.Page(
                 "pages/2_assessment.py",
                 title=t("step_assessment"),
                 icon="📋",

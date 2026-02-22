@@ -1,6 +1,5 @@
 """Client Profile page — collects and stores client information."""
 
-import httpx
 import streamlit as st
 from utils import (
     render_page_header,
@@ -230,97 +229,6 @@ if "client_profile" in st.session_state:
             "  ·  ".join(f"{k}: {v}" for k, v in filled.items()),
         )
 
-    st.page_link("pages/2_assessment.py", label=t("profile_continue"))
-
-# ── Body measurements time series ─────────────────────────────────────────────
-if "client_profile" in st.session_state:
-    p = st.session_state["client_profile"]
-    api_url = st.session_state.get("api_url", "http://localhost:8000")
-    coach = st.session_state.get("current_user", "")
-    client_name = p["name"]
-
-    st.divider()
-    st.markdown(f"#### {t('measurement_section')}")
-
-    # ── Log new measurement ────────────────────────────────────────────────────
-    with st.expander(t("measurement_log_expander")):
-        with st.form("measurement_form"):
-            mc1, mc2 = st.columns(2)
-            with mc1:
-                m_weight = st.number_input(
-                    t("measurement_weight"), min_value=0.0, max_value=300.0,
-                    value=0.0, step=0.5,
-                )
-                m_waist = st.number_input(
-                    t("measurement_waist"), min_value=0.0, max_value=200.0,
-                    value=0.0, step=0.5,
-                )
-            with mc2:
-                m_hip = st.number_input(
-                    t("measurement_hip"), min_value=0.0, max_value=200.0,
-                    value=0.0, step=0.5,
-                )
-                m_neck = st.number_input(
-                    t("measurement_neck"), min_value=0.0, max_value=80.0,
-                    value=0.0, step=0.5,
-                    help=t("profile_neck_help"),
-                )
-            m_submitted = st.form_submit_button(t("measurement_save"), type="primary")
-
-        if m_submitted:
-            payload = {
-                k: v if v > 0 else None
-                for k, v in {
-                    "weight_kg": m_weight,
-                    "waist_cm": m_waist,
-                    "hip_cm": m_hip,
-                    "neck_cm": m_neck,
-                }.items()
-            }
-            try:
-                resp = httpx.post(
-                    f"{api_url}/clients/{client_name}/measurements",
-                    json=payload,
-                    params={"coach": coach},
-                    timeout=10,
-                )
-                if resp.status_code == 200:
-                    st.success(t("measurement_logged"))
-                    st.rerun()
-                else:
-                    st.error(resp.json().get("detail", "Error logging measurement."))
-            except httpx.ConnectError:
-                st.error(t("login_backend_error"))
-
-    # ── Measurement history ────────────────────────────────────────────────────
-    st.markdown(f"**{t('measurement_history')}**")
-    try:
-        hist_resp = httpx.get(
-            f"{api_url}/clients/{client_name}/measurements",
-            params={"coach": coach},
-            timeout=10,
-        )
-        if hist_resp.status_code == 200:
-            records = hist_resp.json()
-            if not records:
-                st.caption(t("measurement_no_data"))
-            else:
-                import pandas as pd
-
-                rows = []
-                for r in records:
-                    rows.append({
-                        t("measurement_date"): r["measured_at"][:16].replace("T", " "),
-                        t("measurement_weight"): r.get("weight_kg"),
-                        t("measurement_waist"): r.get("waist_cm"),
-                        t("measurement_hip"): r.get("hip_cm"),
-                        t("measurement_neck"): r.get("neck_cm"),
-                        t("measurement_bmi"): r.get("bmi"),
-                        t("measurement_body_fat"): r.get("body_fat_pct"),
-                        t("measurement_body_fat_rating"): r.get("body_fat_rating"),
-                        t("measurement_fat_mass"): r.get("fat_mass_kg"),
-                        t("measurement_lean_mass"): r.get("lean_mass_kg"),
-                    })
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-    except httpx.ConnectError:
-        st.warning(t("login_backend_error"))
+    col_a, col_b = st.columns(2)
+    col_a.page_link("pages/1b_body_measures.py", label=f"📏 {t('step_body_measures')}")
+    col_b.page_link("pages/2_assessment.py", label=t("profile_continue"))

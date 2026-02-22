@@ -140,7 +140,22 @@
     "charts_expander": "Progress Charts",
     "charts_no_data": "No chart data available (need 2+ assessments with thresholds).",
     "profile_preferred_activities": "Preferred Activities *(optional)*",
-    "profile_equipment": "Equipment Available *(optional)*"
+    "profile_equipment": "Equipment Available *(optional)*",
+    "step_body_measures": "Body Measures",
+    "body_measures_title": "Body Measures",
+    "body_measures_profile_required": "Please complete the client profile first.",
+    "body_measures_go_profile": "→ Go to Client Profile",
+    "body_measures_current": "Current Measurements",
+    "body_measures_no_data": "No measurements recorded yet. Log your first measurement below.",
+    "body_measures_trends": "Trends",
+    "body_measures_charts_expander": "Historical Charts",
+    "body_measures_charts_min2": "Log at least 2 measurements to see trend charts.",
+    "body_measures_bmi": "BMI",
+    "body_measures_body_fat": "Body Fat %",
+    "body_measures_whr": "Waist-to-Hip Ratio",
+    "body_measures_weight": "Weight",
+    "body_measures_fat_mass": "Fat Mass",
+    "body_measures_lean_mass": "Lean Mass"
   },
   "ratings": {
     "Excellent": "Excellent",

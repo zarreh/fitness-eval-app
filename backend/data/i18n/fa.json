@@ -140,7 +140,22 @@
     "charts_expander": "نمودارهای پیشرفت",
     "charts_no_data": "داده‌ای برای نمودار وجود ندارد (حداقل ۲ ارزیابی با آستانه‌ها لازم است).",
     "profile_preferred_activities": "فعالیت‌های ترجیحی *(اختیاری)*",
-    "profile_equipment": "تجهیزات موجود *(اختیاری)*"
+    "profile_equipment": "تجهیزات موجود *(اختیاری)*",
+    "step_body_measures": "اندازه‌های بدنی",
+    "body_measures_title": "اندازه‌های بدنی",
+    "body_measures_profile_required": "لطفاً ابتدا پروفایل مشتری را تکمیل کنید.",
+    "body_measures_go_profile": "→ برو به پروفایل مشتری",
+    "body_measures_current": "اندازه‌های فعلی",
+    "body_measures_no_data": "هنوز هیچ اندازه‌ای ثبت نشده. اولین اندازه‌گیری خود را در زیر ثبت کنید.",
+    "body_measures_trends": "روندها",
+    "body_measures_charts_expander": "نمودارهای تاریخچه",
+    "body_measures_charts_min2": "برای مشاهده نمودارهای روند، حداقل ۲ اندازه‌گیری ثبت کنید.",
+    "body_measures_bmi": "شاخص توده بدنی",
+    "body_measures_body_fat": "درصد چربی بدن",
+    "body_measures_whr": "نسبت کمر به باسن",
+    "body_measures_weight": "وزن",
+    "body_measures_fat_mass": "توده چربی",
+    "body_measures_lean_mass": "توده عضلانی"
   },
   "ratings": {
     "Excellent": "عالی",

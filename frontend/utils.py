@@ -104,14 +104,14 @@ def inject_custom_css() -> None:
             border-color: rgba(255,255,255,0.2) !important;
         }}
         section[data-testid="stSidebar"] .stButton > button {{
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.13);
-            color: #dde2f0 !important;
+            background: #2a2a4e !important;
+            border: 1px solid rgba(255,255,255,0.18) !important;
+            color: #e8ecf4 !important;
             border-radius: 6px;
         }}
         section[data-testid="stSidebar"] .stButton > button:hover {{
-            background: rgba(255,255,255,0.14);
-            border-color: rgba(255,255,255,0.28);
+            background: #0f3460 !important;
+            border-color: rgba(255,255,255,0.35) !important;
         }}
         section[data-testid="stSidebar"] hr {{
             border-color: rgba(255,255,255,0.1) !important;
