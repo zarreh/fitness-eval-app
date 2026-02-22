@@ -64,6 +64,7 @@ class ProgressDelta(BaseModel):
     current_rating: str
     direction: Literal["improved", "declined", "unchanged"]
     delta: float  # current - previous (signed)
+    unit: str = ""
 
 
 class AssessmentSnapshot(BaseModel):

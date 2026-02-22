@@ -243,23 +243,31 @@ def _compute_progress_deltas(
             "current_rating": curr["rating"],
             "direction": direction,
             "delta": delta_val,
+            "unit": curr.get("unit", ""),
         }
     return deltas
 
 
 def _delta_indicator_html(delta: dict) -> str:
-    """Return inline HTML for a progress delta indicator."""
+    """Return inline HTML for a progress delta indicator with numeric delta and rating transition."""
+    raw_delta = delta.get("delta", 0.0)
+    unit = delta.get("unit", "")
+    sign = "+" if raw_delta >= 0 else ""
+    fmt_val = str(int(raw_delta)) if raw_delta == int(raw_delta) else f"{raw_delta:.1f}"
+    delta_str = f"{sign}{fmt_val}"
+    prev_r = delta.get("previous_rating", "")
+    curr_r = delta.get("current_rating", "")
+    rating_change = f" ({prev_r} → {curr_r})" if prev_r != curr_r else ""
+
     if delta["direction"] == "improved":
-        prev_r = delta["previous_rating"]
         return (
             '<span style="color:#155724;font-size:0.75em;font-weight:700;">'
-            f'&#9650; {t("progress_improved", prev=prev_r)}</span>'
+            f'&#9650; {delta_str}&nbsp;{unit}{rating_change}</span>'
         )
     elif delta["direction"] == "declined":
-        prev_r = delta["previous_rating"]
         return (
             '<span style="color:#721c24;font-size:0.75em;font-weight:700;">'
-            f'&#9660; {t("progress_declined", prev=prev_r)}</span>'
+            f'&#9660; {delta_str}&nbsp;{unit}{rating_change}</span>'
         )
     else:
         return (

@@ -589,12 +589,20 @@
           <td>
             {% set delta = progress_map.get(result.test_name) %}
             {% if delta %}
+              {% set sign = "+" if delta.delta >= 0 else "" %}
+              {% set delta_str = sign ~ (delta.delta | fmt) %}
+              {% set prev_label = rating_labels.get(delta.previous_rating, delta.previous_rating) if rating_labels else delta.previous_rating %}
+              {% set curr_label = rating_labels.get(delta.current_rating, delta.current_rating) if rating_labels else delta.current_rating %}
               {% if delta.direction == "improved" %}
-                <span class="delta-improved">&#9650; {{ pdf.get('improved', 'Improved') }}</span><br>
-                <span class="prev-value">{{ pdf.get('result_col', 'was') }} {{ delta.previous_value | fmt }} ({{ rating_labels.get(delta.previous_rating, delta.previous_rating) if rating_labels else delta.previous_rating }})</span>
+                <span class="delta-improved">&#9650; {{ delta_str }}&nbsp;{{ delta.unit }}</span>
+                {% if delta.previous_rating != delta.current_rating %}
+                <br><span class="prev-value">{{ prev_label }} → {{ curr_label }}</span>
+                {% endif %}
               {% elif delta.direction == "declined" %}
-                <span class="delta-declined">&#9660; {{ pdf.get('declined', 'Declined') }}</span><br>
-                <span class="prev-value">{{ pdf.get('result_col', 'was') }} {{ delta.previous_value | fmt }} ({{ rating_labels.get(delta.previous_rating, delta.previous_rating) if rating_labels else delta.previous_rating }})</span>
+                <span class="delta-declined">&#9660; {{ delta_str }}&nbsp;{{ delta.unit }}</span>
+                {% if delta.previous_rating != delta.current_rating %}
+                <br><span class="prev-value">{{ prev_label }} → {{ curr_label }}</span>
+                {% endif %}
               {% else %}
                 <span class="delta-unchanged">&#8212; {{ pdf.get('unchanged', 'Unchanged') }}</span>
               {% endif %}
