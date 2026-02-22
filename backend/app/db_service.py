@@ -9,7 +9,7 @@ import json
 from datetime import datetime, timezone
 from typing import Literal
 
-from passlib.context import CryptContext
+import bcrypt as _bcrypt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,8 +21,6 @@ from app.models import (
     MetricResult,
     ProgressDelta,
 )
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _RATING_ORDER = ["Poor", "Fair", "Good", "Very Good", "Excellent"]
 
 
@@ -59,7 +57,7 @@ async def create_coach(
     """
     coach = Coach(
         username=username,
-        hashed_password=_pwd_context.hash(password),
+        hashed_password=_bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode(),
         display_name=display_name,
     )
     db.add(coach)
@@ -85,7 +83,7 @@ async def validate_coach_credentials(
     coach = await get_coach_by_username(db, username)
     if not coach:
         return None
-    if not _pwd_context.verify(password, coach.hashed_password):
+    if not _bcrypt.checkpw(password.encode(), coach.hashed_password.encode()):
         return None
     return {"username": coach.username, "display_name": coach.display_name}
 

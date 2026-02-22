@@ -16,7 +16,7 @@ import json
 import logging
 from pathlib import Path
 
-from passlib.context import CryptContext
+import bcrypt as _bcrypt
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,8 +29,6 @@ logger = logging.getLogger(__name__)
 DATA_DIR = Path(__file__).parent.parent / "data"
 COACHES_FILE = DATA_DIR / "coaches.json"
 CLIENTS_FILE = DATA_DIR / "clients.json"
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 async def run_migration_if_needed(db: AsyncSession) -> None:
@@ -73,7 +71,7 @@ async def run_migration_if_needed(db: AsyncSession) -> None:
     for c in coaches_raw:
         coach = Coach(
             username=c["username"],
-            hashed_password=_pwd_context.hash(c["password"]),
+            hashed_password=_bcrypt.hashpw(c["password"].encode(), _bcrypt.gensalt()).decode(),
             display_name=c.get("display_name", c["username"]),
         )
         db.add(coach)
