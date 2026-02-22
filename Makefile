@@ -31,8 +31,8 @@ env:                                        ## Copy .env.example → backend/.en
 backend:                                    ## Start the FastAPI dev server (port 8000)
 	cd $(BACKEND) && poetry run uvicorn app.main:app --reload --port 8000
 
-frontend:                                   ## Start the Streamlit dev server (port 8501)
-	cd $(FRONTEND) && poetry run streamlit run app.py --server.port 8501
+frontend:                                   ## Start the Streamlit dev server (port 8502)
+	cd $(FRONTEND) && poetry run streamlit run app.py --server.port 8502
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 

@@ -100,7 +100,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 docker compose exec ollama ollama pull llama3.2
 ```
 
-Open [http://localhost:8501](http://localhost:8501) to use the app.
+Open [http://localhost:8502](http://localhost:8502) to use the app.
 FastAPI docs are at [http://localhost:8000/docs](http://localhost:8000/docs).
 
 ### Option 2 — Local dev (Poetry)

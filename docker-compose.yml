@@ -15,7 +15,7 @@
 #
 # Services:
 #   backend  → http://localhost:8000   (FastAPI + WeasyPrint)
-#   frontend → http://localhost:8501   (Streamlit)
+#   frontend → http://localhost:8502   (Streamlit)
 
 services:
 
@@ -52,7 +52,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "8501:8501"
+      - "8502:8501"
     environment:
       # Point the frontend at the backend service by its internal hostname.
       API_URL: "http://backend:8000"

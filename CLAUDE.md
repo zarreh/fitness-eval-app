@@ -63,7 +63,7 @@ cd frontend && poetry install
 cd backend && poetry run uvicorn app.main:app --reload --port 8000
 
 # Frontend
-cd frontend && poetry run streamlit run app.py --server.port 8501
+cd frontend && poetry run streamlit run app.py --server.port 8502
 
 # Docker (full stack)
 docker compose up --build

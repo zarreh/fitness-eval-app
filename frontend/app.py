@@ -2,7 +2,7 @@
 
 All data operations go through the FastAPI backend via HTTP.
 Run with:
-    streamlit run app.py --server.port 8501
+    streamlit run app.py --server.port 8502
 """
 
 import os
