@@ -1,0 +1,40 @@
+# ── Fitness Evaluation App — Docker Compose Dev Override ───────────────────────
+#
+# Adds the Ollama service for local development (no OpenAI key needed).
+# Merges with docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#   (or: make docker-dev-up)
+#
+# First run — pull the model after services are up:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml exec ollama ollama pull llama3.2
+#   (or: make docker-pull-model)
+
+services:
+
+  # ── Override backend to connect to the local Ollama service ──────────────────
+  backend:
+    environment:
+      OLLAMA_BASE_URL: "http://ollama:11434"
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  # ── Ollama (local LLM server) ─────────────────────────────────────────────────
+  # Models are persisted in the ollama_data volume across restarts.
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  # Persists downloaded Ollama models across container restarts and rebuilds.
+  ollama_data:
