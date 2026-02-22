@@ -44,3 +44,4 @@ Thumbs.db
 
 # Runtime data — contains live client records; never commit
 backend/data/clients.json
+backend/data/fitness.db
