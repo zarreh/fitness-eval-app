@@ -20,6 +20,10 @@ class ClientProfile(BaseModel):
     hip_cm: Optional[float] = None
     neck_cm: Optional[float] = None
 
+    # Workout preferences — used to tailor LLM workout suggestions.
+    preferred_activities: list[str] = []
+    equipment_available: list[str] = []
+
 
 class AssessmentInput(BaseModel):
     """Raw test data submitted by the coach for calculation.

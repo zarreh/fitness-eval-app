@@ -314,6 +314,16 @@ def generate_workout_suggestions(
         system_prompt = _load_prompt("system_prompt.txt")
         user_template = _load_prompt("workout_prompt.txt")
 
+        preferred = (
+            ", ".join(client.preferred_activities)
+            if client.preferred_activities
+            else "No preference specified"
+        )
+        equipment = (
+            ", ".join(client.equipment_available)
+            if client.equipment_available
+            else "No equipment specified"
+        )
         user_message = user_template.format(
             client_name=client.name,
             client_age=client.age,
@@ -322,6 +332,8 @@ def generate_workout_suggestions(
             overall_level=_compute_overall_level(results),
             results_table=_format_results_table(results),
             progress_section=_format_progress_section(progress),
+            preferred_activities=preferred,
+            equipment_available=equipment,
         ) + llm_language_instruction(language)
 
         llm = get_llm()

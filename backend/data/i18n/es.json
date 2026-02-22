@@ -138,7 +138,9 @@
     "measurement_fat_mass": "Masa Grasa (kg)",
     "measurement_lean_mass": "Masa Magra (kg)",
     "charts_expander": "Gráficos de Progreso",
-    "charts_no_data": "No hay datos para graficar (se necesitan 2+ evaluaciones con umbrales)."
+    "charts_no_data": "No hay datos para graficar (se necesitan 2+ evaluaciones con umbrales).",
+    "profile_preferred_activities": "Actividades Preferidas *(opcional)*",
+    "profile_equipment": "Equipamiento Disponible *(opcional)*"
   },
   "ratings": {
     "Excellent": "Excelente",

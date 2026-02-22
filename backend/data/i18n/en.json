@@ -138,7 +138,9 @@
     "measurement_fat_mass": "Fat Mass (kg)",
     "measurement_lean_mass": "Lean Mass (kg)",
     "charts_expander": "Progress Charts",
-    "charts_no_data": "No chart data available (need 2+ assessments with thresholds)."
+    "charts_no_data": "No chart data available (need 2+ assessments with thresholds).",
+    "profile_preferred_activities": "Preferred Activities *(optional)*",
+    "profile_equipment": "Equipment Available *(optional)*"
   },
   "ratings": {
     "Excellent": "Excellent",

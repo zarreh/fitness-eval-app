@@ -138,7 +138,9 @@
     "measurement_fat_mass": "توده چربی (کیلوگرم)",
     "measurement_lean_mass": "توده عضلانی (کیلوگرم)",
     "charts_expander": "نمودارهای پیشرفت",
-    "charts_no_data": "داده‌ای برای نمودار وجود ندارد (حداقل ۲ ارزیابی با آستانه‌ها لازم است)."
+    "charts_no_data": "داده‌ای برای نمودار وجود ندارد (حداقل ۲ ارزیابی با آستانه‌ها لازم است).",
+    "profile_preferred_activities": "فعالیت‌های ترجیحی *(اختیاری)*",
+    "profile_equipment": "تجهیزات موجود *(اختیاری)*"
   },
   "ratings": {
     "Excellent": "عالی",

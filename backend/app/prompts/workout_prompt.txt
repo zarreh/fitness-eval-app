@@ -10,6 +10,11 @@ CLIENT PROFILE:
 ASSESSMENT RESULTS (pre-calculated — do not recalculate):
 {results_table}
 {progress_section}
+CLIENT PREFERENCES:
+- Preferred activities: {preferred_activities}
+- Equipment available: {equipment_available}
+Prioritize these when designing the workout. Only suggest exercises feasible with the listed equipment.
+
 INTENSITY GUIDANCE based on overall fitness level:
 - Excellent / Very Good: moderate-to-high intensity, challenge the client, include progression targets
 - Good: moderate intensity, build consistency before adding load or complexity

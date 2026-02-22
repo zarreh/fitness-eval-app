@@ -28,6 +28,27 @@ GOAL_OPTIONS = [
     "sport_performance",
 ]
 
+ACTIVITY_OPTIONS = [
+    "gym",
+    "outdoor",
+    "home",
+    "swimming",
+    "yoga",
+    "HIIT",
+    "cycling",
+    "pilates",
+]
+
+EQUIPMENT_OPTIONS = [
+    "barbell",
+    "dumbbells",
+    "resistance_bands",
+    "kettlebell",
+    "pull-up bar",
+    "cable machine",
+    "none",
+]
+
 # ── New-client reset button ───────────────────────────────────────────────────
 if "client_profile" in st.session_state:
     if st.button(f"✕ {t('profile_clear')}", help=t("profile_clear")):
@@ -82,6 +103,20 @@ with st.form("client_profile_form"):
         placeholder=t("profile_notes_placeholder"),
         height=80,
     )
+
+    pcol1, pcol2 = st.columns(2)
+    with pcol1:
+        preferred_activities = st.multiselect(
+            t("profile_preferred_activities"),
+            options=ACTIVITY_OPTIONS,
+            default=saved.get("preferred_activities", []),
+        )
+    with pcol2:
+        equipment_available = st.multiselect(
+            t("profile_equipment"),
+            options=EQUIPMENT_OPTIONS,
+            default=saved.get("equipment_available", []),
+        )
 
     st.divider()
     st.markdown(f"**{t('profile_body_measurements')}**")
@@ -151,6 +186,8 @@ if submitted:
             "waist_cm": waist_cm if waist_cm > 0 else None,
             "hip_cm": hip_cm if hip_cm > 0 else None,
             "neck_cm": neck_cm if neck_cm > 0 else None,
+            "preferred_activities": preferred_activities,
+            "equipment_available": equipment_available,
         }
         st.session_state["client_profile"] = profile
 
