@@ -4,8 +4,6 @@ import httpx
 import streamlit as st
 from utils import inject_custom_css, t, _SUPPORTED_LANGS
 
-st.set_page_config(page_title="Create Account", layout="wide")
-
 inject_custom_css()
 
 # Redirect to main app if already logged in.
@@ -79,13 +77,12 @@ with col:
                 elif resp.status_code == 409:
                     st.error(t("signup_error_username_taken"))
                 else:
-                    detail = resp.json().get("detail", "")
+                    try:
+                        detail = resp.json().get("detail", "")
+                    except Exception:
+                        detail = ""
                     st.error(f"{t('signup_error_generic')} ({detail})" if detail else t("signup_error_generic"))
             except httpx.ConnectError:
                 st.error(t("login_backend_error"))
 
-    st.markdown(
-        f"<div style='text-align:center;margin-top:0.8rem;font-size:0.9em;'>"
-        f"<a href='/' target='_self'>{t('signup_already_have_account')}</a></div>",
-        unsafe_allow_html=True,
-    )
+    st.page_link("pages/login.py", label=t("signup_already_have_account"))

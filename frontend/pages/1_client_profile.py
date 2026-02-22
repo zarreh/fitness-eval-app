@@ -11,8 +11,6 @@ from utils import (
     t,
 )
 
-st.set_page_config(page_title="Client Profile", layout="wide")
-
 require_login()
 show_step_indicator(1)
 show_client_sidebar()

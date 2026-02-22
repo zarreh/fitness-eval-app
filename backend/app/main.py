@@ -161,8 +161,8 @@ async def signup(
     )
     return SignupResponse(
         success=True,
-        username=coach["username"],
-        display_name=coach["display_name"],
+        username=coach.username,
+        display_name=coach.display_name,
     )
 
 

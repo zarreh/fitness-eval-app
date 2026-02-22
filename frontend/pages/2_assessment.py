@@ -15,8 +15,6 @@ from utils import (
     t,
 )
 
-st.set_page_config(page_title="Assessment", layout="wide")
-
 require_login()
 show_step_indicator(2)
 show_client_sidebar()

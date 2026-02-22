@@ -12,8 +12,6 @@ from utils import (
     t,
 )
 
-st.set_page_config(page_title="Report", layout="wide")
-
 require_login()
 show_step_indicator(3)
 show_client_sidebar()

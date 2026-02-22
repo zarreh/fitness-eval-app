@@ -42,6 +42,17 @@ RUN poetry install --only main --no-interaction --no-ansi
 # Copy application source (invalidates cache on code changes only).
 COPY . .
 
+# Bake static data (i18n bundles, normative tables) into a separate image
+# path so the entrypoint can sync them into the volume-mounted /app/data on
+# every start.  This keeps translations and norms up-to-date after rebuilds
+# without wiping runtime data (fitness.db, clients.json, coaches.json).
+RUN mkdir -p /app/seed_data && \
+    cp -r /app/data/i18n /app/seed_data/i18n && \
+    cp -r /app/data/norms /app/seed_data/norms
+
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=3 \
@@ -49,4 +60,5 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=3 \
         "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" \
     || exit 1
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]

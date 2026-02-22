@@ -4,8 +4,6 @@ Import at the top of each page:
     from utils import require_login, show_step_indicator, show_client_sidebar
 """
 
-import time
-
 import httpx
 import streamlit as st
 
@@ -30,15 +28,20 @@ def load_translations(lang: str) -> dict:
         Translation dict; falls back to English on network error.
     """
     cache_key = f"_i18n_{lang}"
-    if cache_key in st.session_state:
-        return st.session_state[cache_key]  # type: ignore[return-value]
+    cached = st.session_state.get(cache_key)
+    # Only use the cache when it actually contains translations.
+    # An empty cache (from a previous failed fetch) is treated as a miss so
+    # the next render retries the request.
+    if cached and cached.get("ui"):
+        return cached  # type: ignore[return-value]
     api_url = st.session_state.get("api_url", "http://localhost:8000")
     try:
         resp = httpx.get(f"{api_url}/i18n/{lang}", timeout=5)
         resp.raise_for_status()
         data: dict = resp.json()
     except Exception:
-        data = {"ui": {}, "ratings": {}, "categories": {}, "goals": {}, "pdf": {}}
+        # Do not cache failures — they will be retried on the next render.
+        return {"ui": {}, "ratings": {}, "categories": {}, "goals": {}, "pdf": {}}
     st.session_state[cache_key] = data
     return data
 
@@ -196,92 +199,15 @@ _BADGE_STYLES: dict[str, tuple[str, str]] = {
 # ── Authentication ─────────────────────────────────────────────────────────────
 
 def require_login() -> None:
-    """Enforce coach authentication on every page.
+    """Guard: redirect to the login page if the session is not authenticated.
 
-    If the current session is not authenticated, a login form is displayed
-    and ``st.stop()`` is called so the rest of the page never renders.
     Call this as the **first statement** in every page (after imports).
+    Session timeout is handled centrally in ``app.py``.
     """
     inject_custom_css()
-    if st.session_state.get("authenticated"):
-        # Enforce 60-minute session timeout.
-        login_ts = st.session_state.get("_login_time", 0.0)
-        if time.time() - login_ts > 3600:
-            for key in (
-                "authenticated", "current_user", "display_name",
-                "client_profile", "calculation", "report", "pdf_bytes",
-                "client_list", "assessment_history", "progress_deltas",
-                "_login_time",
-            ):
-                st.session_state.pop(key, None)
-            st.warning(t("session_expired"))
-            # Fall through to show the login form.
-        else:
-            return
-
-    # Language selector above the login card (no auth needed).
-    _, lang_col, _ = st.columns([1, 1.5, 1])
-    with lang_col:
-        lang_options = {
-            lc["code"]: f"{lc['flag']} {lc['name']}" for lc in _SUPPORTED_LANGS
-        }
-        current_lang = st.session_state.get("lang", "en")
-        selected_lang = st.selectbox(
-            t("language_label"),
-            options=list(lang_options.keys()),
-            format_func=lambda c: lang_options[c],
-            index=list(lang_options.keys()).index(current_lang),
-            key="_lang_selector_login",
-        )
-        if selected_lang != current_lang:
-            st.session_state["lang"] = selected_lang
-            st.rerun()
-
-    # Centre the login card with empty columns.
-    _, col, _ = st.columns([1, 1.5, 1])
-    with col:
-        st.markdown(
-            f"<h2 style='text-align:center;margin-bottom:1.2rem;'>"
-            f"🏋️ {t('login_title')}</h2>",
-            unsafe_allow_html=True,
-        )
-        with st.form("login_form"):
-            username = st.text_input(t("login_username"))
-            password = st.text_input(t("login_password"), type="password")
-            submitted = st.form_submit_button(
-                t("login_button"), use_container_width=True
-            )
-
-        if submitted:
-            api_url = st.session_state.get("api_url", "http://localhost:8000")
-            try:
-                resp = httpx.post(
-                    f"{api_url}/auth/login",
-                    json={"username": username, "password": password},
-                    timeout=10,
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    display_name = data.get("display_name", username)
-                    st.session_state["authenticated"] = True
-                    st.session_state["current_user"] = data.get("username", username)
-                    st.session_state["display_name"] = display_name
-                    st.session_state["_login_time"] = time.time()
-                    # Pre-populate coach_name for PDF cover page.
-                    st.session_state.setdefault("coach_name", display_name)
-                    st.rerun()
-                else:
-                    st.error(t("login_error"))
-            except httpx.ConnectError:
-                st.error(t("login_backend_error"))
-
-        st.markdown(
-            f"<div style='text-align:center;margin-top:0.6rem;font-size:0.9em;'>"
-            f"<a href='/0_signup' target='_self'>{t('signup_link')}</a></div>",
-            unsafe_allow_html=True,
-        )
-
-    st.stop()
+    if not st.session_state.get("authenticated"):
+        st.switch_page("pages/login.py")
+        st.stop()
 
 
 # ── Step indicator ─────────────────────────────────────────────────────────────
