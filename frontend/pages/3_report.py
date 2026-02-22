@@ -167,9 +167,11 @@ if "report" in st.session_state:
     if csv_key not in st.session_state:
         if st.button(f"📊 {t('export_csv')}"):
             try:
+                coach = st.session_state.get("current_user", "")
                 csv_resp = httpx.get(
                     f"{API_URL}/clients/{quote(client['name'], safe='')}"
                     "/history/csv",
+                    params={"coach": coach},
                     timeout=10,
                 )
                 csv_resp.raise_for_status()

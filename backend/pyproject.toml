@@ -20,6 +20,9 @@ jinja2 = "^3"
 python-dotenv = "^1"
 httpx = "^0.28"
 markdown = "^3"
+sqlalchemy = {extras = ["asyncio"], version = "^2"}
+aiosqlite = "^0.20"
+passlib = {extras = ["bcrypt"], version = "^1"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8"

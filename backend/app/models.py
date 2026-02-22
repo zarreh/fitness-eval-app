@@ -134,3 +134,28 @@ class ClientRecord(BaseModel):
     assessed_at: Optional[datetime] = None
     assessment_history: list[AssessmentSnapshot] = []
     coach_username: str = ""
+
+
+class BodyMeasurementInput(BaseModel):
+    """Input for logging a new body measurement snapshot (Phase 4)."""
+
+    weight_kg: Optional[float] = None
+    waist_cm: Optional[float] = None
+    hip_cm: Optional[float] = None
+    neck_cm: Optional[float] = None
+
+
+class BodyMeasurementRecord(BaseModel):
+    """A stored body measurement snapshot with computed values (Phase 4)."""
+
+    id: int
+    measured_at: datetime
+    weight_kg: Optional[float] = None
+    waist_cm: Optional[float] = None
+    hip_cm: Optional[float] = None
+    neck_cm: Optional[float] = None
+    bmi: Optional[float] = None
+    body_fat_pct: Optional[float] = None
+    body_fat_rating: Optional[str] = None
+    fat_mass_kg: Optional[float] = None
+    lean_mass_kg: Optional[float] = None

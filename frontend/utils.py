@@ -460,8 +460,11 @@ def _delete_client_from_backend(name: str) -> None:
         name: The client name to delete.
     """
     api_url = st.session_state.get("api_url", "http://localhost:8000")
+    coach = st.session_state.get("current_user", "")
     try:
-        httpx.delete(f"{api_url}/clients/{name}", timeout=10)
+        httpx.delete(
+            f"{api_url}/clients/{name}", params={"coach": coach}, timeout=10
+        )
     except Exception:
         pass  # Non-fatal.
 

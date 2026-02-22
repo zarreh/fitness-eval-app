@@ -194,11 +194,13 @@ if submitted:
 
     # Persist assessment results to backend so they survive page reloads.
     client_name = client.get("name", "")
-    if client_name:
+    coach = st.session_state.get("current_user", "")
+    if client_name and coach:
         try:
             httpx.post(
                 f"{API_URL}/clients/{quote(client_name, safe='')}/assessment",
                 json=calculation["results"],
+                params={"coach": coach},
                 timeout=10,
             )
         except Exception:

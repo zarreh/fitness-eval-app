@@ -1,7 +1,7 @@
 """FastAPI application entry point.
 
 Defines the REST API endpoints. Handlers are thin — all business logic
-is delegated to logic.py, llm_service.py, and pdf_service.py.
+is delegated to logic.py, llm_service.py, pdf_service.py, and db_service.py.
 
 Run with:
     uvicorn app.main:app --reload --port 8000
@@ -9,20 +9,23 @@ Run with:
 
 import csv
 import io
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from typing import AsyncGenerator
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import (
-    auth_service,
-    client_service,
+    db_service,
     i18n_service,
     llm_service,
     logic,
     pdf_service,
 )
+from app.database import AsyncSessionLocal, create_tables, get_db
 from app.models import (
     AssessmentInput,
     AssessmentSnapshot,
@@ -37,6 +40,20 @@ from app.models import (
     TestInfo,
 )
 
+# Import ORM models so Base.metadata is populated before create_tables() runs.
+import app.db_models  # noqa: F401
+import app.migrate_json_to_db as _migrate
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan — create tables and run JSON→SQLite migration."""
+    await create_tables()
+    async with AsyncSessionLocal() as db:
+        await _migrate.run_migration_if_needed(db)
+    yield
+
+
 app = FastAPI(
     title="Fitness Evaluation API",
     description=(
@@ -44,7 +61,8 @@ app = FastAPI(
         "Coach submits raw test data → ratings calculated "
         "→ LLM generates narrative → PDF report."
     ),
-    version="0.2.0",
+    version="0.3.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -53,6 +71,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── System ────────────────────────────────────────────────────────────────────
 
 
 @app.get("/health", tags=["system"])
@@ -76,14 +97,20 @@ async def list_languages() -> list[dict[str, str]]:
     return i18n_service.get_supported_languages()
 
 
-@app.post("/auth/login", response_model=LoginResponse, tags=["auth"])
-async def login(request: LoginRequest) -> LoginResponse:
-    """Validate coach credentials.
+# ── Auth ──────────────────────────────────────────────────────────────────────
 
-    Checks ``coaches.json`` first, then falls back to env-var credentials.
-    Returns HTTP 401 if credentials do not match.
+
+@app.post("/auth/login", response_model=LoginResponse, tags=["auth"])
+async def login(
+    request: LoginRequest, db: AsyncSession = Depends(get_db)
+) -> LoginResponse:
+    """Validate coach credentials against the SQLite coaches table.
+
+    Returns HTTP 401 if the username is not found or the password is wrong.
     """
-    coach = auth_service.validate_credentials(request.username, request.password)
+    coach = await db_service.validate_coach_credentials(
+        db, request.username, request.password
+    )
     if not coach:
         raise HTTPException(status_code=401, detail="Invalid username or password.")
     return LoginResponse(
@@ -93,42 +120,60 @@ async def login(request: LoginRequest) -> LoginResponse:
     )
 
 
+# ── Clients ───────────────────────────────────────────────────────────────────
+
+
 @app.get("/clients", response_model=list[ClientRecord], tags=["clients"])
-async def list_clients(coach: str | None = None) -> list[ClientRecord]:
-    """Return saved client records, optionally filtered by coach username."""
-    return client_service.load_clients(coach_username=coach)
+async def list_clients(
+    coach: str, db: AsyncSession = Depends(get_db)
+) -> list[ClientRecord]:
+    """Return saved client records for the given coach.
+
+    ``coach`` (the coach's username) is required — clients are strictly
+    isolated per coach.
+    """
+    return await db_service.list_clients_for_coach(db, coach)
 
 
 @app.post("/clients", response_model=ClientRecord, tags=["clients"])
 async def save_client(
-    profile: ClientProfile, coach: str | None = None
+    profile: ClientProfile,
+    coach: str,
+    db: AsyncSession = Depends(get_db),
 ) -> ClientRecord:
-    """Create or update a client record (upsert by name).
+    """Create or update a client record (upsert by coach + name).
 
-    Accepts a ``ClientProfile`` directly; the backend generates ``saved_at``.
-    The optional ``coach`` query param assigns ownership.
+    ``coach`` is required and determines client ownership.
     """
-    return client_service.upsert_client(profile, coach_username=coach or "")
+    try:
+        return await db_service.upsert_client(db, profile, coach)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.delete("/clients/{name}", tags=["clients"])
-async def remove_client(name: str) -> dict[str, bool]:
-    """Delete a client by name. Returns {deleted: false} if not found."""
-    deleted = client_service.delete_client(name)
+async def remove_client(
+    name: str, coach: str, db: AsyncSession = Depends(get_db)
+) -> dict[str, bool]:
+    """Delete a client by coach + name. Returns ``{deleted: false}`` if not found."""
+    deleted = await db_service.delete_client(db, coach, name)
     return {"deleted": deleted}
 
 
 @app.post("/clients/{name}/assessment", response_model=ClientRecord, tags=["clients"])
 async def save_client_assessment(
-    name: str, results: list[MetricResult]
+    name: str,
+    results: list[MetricResult],
+    coach: str,
+    db: AsyncSession = Depends(get_db),
 ) -> ClientRecord:
     """Attach the latest assessment results to an existing client record.
 
-    Call this after /assess/calculate to persist results for future sessions.
-    Returns HTTP 404 if the client does not exist (save the profile first).
+    Call this after ``/assess/calculate`` to persist results for future
+    sessions. Returns HTTP 404 if the client does not exist.
     """
     try:
-        return client_service.save_assessment(name, results)
+        return await db_service.save_assessment(db, coach, name, results)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -138,34 +183,36 @@ async def save_client_assessment(
     response_model=list[AssessmentSnapshot],
     tags=["clients"],
 )
-async def get_client_history(name: str) -> list[AssessmentSnapshot]:
+async def get_client_history(
+    name: str, coach: str, db: AsyncSession = Depends(get_db)
+) -> list[AssessmentSnapshot]:
     """Return full assessment history for a client (newest first).
 
-    Returns HTTP 404 if the client does not exist.
+    Returns HTTP 404 if the client does not exist for this coach.
     """
-    records = client_service.load_clients()
-    for r in records:
-        if r.name == name:
-            return r.assessment_history
-    raise HTTPException(status_code=404, detail=f"Client '{name}' not found.")
+    history = await db_service.get_assessment_history(db, coach, name)
+    if not history:
+        raise HTTPException(status_code=404, detail=f"Client '{name}' not found.")
+    return history
 
 
 @app.get("/clients/{name}/history/csv", tags=["clients"])
-async def export_client_history_csv(name: str) -> StreamingResponse:
-    """Export a client's full assessment history as a downloadable CSV file.
+async def export_client_history_csv(
+    name: str, coach: str, db: AsyncSession = Depends(get_db)
+) -> StreamingResponse:
+    """Export a client's full assessment history as a downloadable CSV.
 
-    Returns HTTP 404 if the client does not exist.
     Columns: date, test_name, raw_value, unit, rating, category.
+    Returns HTTP 404 if the client does not exist for this coach.
     """
-    records = client_service.load_clients()
-    record = next((r for r in records if r.name == name), None)
-    if not record:
+    history = await db_service.get_assessment_history(db, coach, name)
+    if not history:
         raise HTTPException(status_code=404, detail=f"Client '{name}' not found.")
 
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["date", "test_name", "raw_value", "unit", "rating", "category"])
-    for snapshot in record.assessment_history:
+    for snapshot in history:
         date_str = snapshot.assessed_at.strftime("%Y-%m-%d %H:%M")
         for result in snapshot.results:
             writer.writerow([
@@ -183,6 +230,9 @@ async def export_client_history_csv(name: str) -> StreamingResponse:
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ── Tests & Assessment ────────────────────────────────────────────────────────
 
 
 @app.get("/tests/battery", response_model=list[TestInfo], tags=["assessment"])
