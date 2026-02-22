@@ -83,6 +83,14 @@ with st.form("client_profile_form"):
             value=int(saved.get("age", 30)),
             step=1,
         )
+        height_cm = st.number_input(
+            t("profile_height"),
+            min_value=0.0,
+            max_value=250.0,
+            value=float(saved.get("height_cm") or 0.0),
+            step=0.5,
+            help=t("profile_height_help"),
+        )
 
     with col2:
         gender_options = ["male", "female"]
@@ -98,15 +106,6 @@ with st.form("client_profile_form"):
             format_func=lambda g: goal_labels.get(g, g.replace("_", " ").title()),
             key=f"_goals_{_client_key}",
         )
-
-    height_cm = st.number_input(
-        t("profile_height"),
-        min_value=0.0,
-        max_value=250.0,
-        value=float(saved.get("height_cm") or 0.0),
-        step=0.5,
-        help=t("profile_height_help"),
-    )
 
     notes = st.text_area(
         t("profile_notes"),
