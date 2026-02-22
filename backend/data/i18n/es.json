@@ -119,6 +119,7 @@
     "signup_error_passwords_mismatch": "Las contraseñas no coinciden.",
     "signup_error_generic": "Registro fallido. Verifica tus datos e inténtalo de nuevo.",
     "signup_already_have_account": "¿Ya tienes cuenta? Inicia sesión",
+    "profile_height_help": "Medida estática — usada para IMC y % de grasa corporal en todas las sesiones.",
     "profile_neck": "Circunferencia del Cuello (cm)",
     "profile_neck_help": "Necesario para estimar el % de grasa corporal (fórmula US Navy).",
     "measurement_section": "Medidas Corporales",

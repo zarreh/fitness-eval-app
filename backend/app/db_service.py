@@ -134,9 +134,12 @@ async def _client_to_record(
         goals=json.loads(client.goals),
         notes=client.notes,
         height_cm=client.height_cm,
+        preferred_activities=json.loads(client.preferred_activities or "[]"),
+        equipment_available=json.loads(client.equipment_available or "[]"),
         weight_kg=latest_meas.weight_kg if latest_meas else None,
         waist_cm=latest_meas.waist_cm if latest_meas else None,
         hip_cm=latest_meas.hip_cm if latest_meas else None,
+        neck_cm=latest_meas.neck_cm if latest_meas else None,
     )
 
     snapshots: list[AssessmentSnapshot] = [
@@ -240,6 +243,8 @@ async def upsert_client(
         existing.goals = json.dumps(profile.goals)
         existing.notes = profile.notes
         existing.height_cm = profile.height_cm
+        existing.preferred_activities = json.dumps(profile.preferred_activities)
+        existing.equipment_available = json.dumps(profile.equipment_available)
         existing.saved_at = now
         client = existing
     else:
@@ -251,6 +256,8 @@ async def upsert_client(
             goals=json.dumps(profile.goals),
             notes=profile.notes,
             height_cm=profile.height_cm,
+            preferred_activities=json.dumps(profile.preferred_activities),
+            equipment_available=json.dumps(profile.equipment_available),
             saved_at=now,
         )
         db.add(client)

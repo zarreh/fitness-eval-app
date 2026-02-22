@@ -119,6 +119,7 @@
     "signup_error_passwords_mismatch": "Passwords do not match.",
     "signup_error_generic": "Sign-up failed. Please check your inputs and try again.",
     "signup_already_have_account": "Already have an account? Sign in",
+    "profile_height_help": "Static measurement — used for BMI and body fat % across all sessions.",
     "profile_neck": "Neck Circumference (cm)",
     "profile_neck_help": "Required for body fat % estimation (US Navy formula).",
     "measurement_section": "Body Measurements",

@@ -29,6 +29,20 @@ coach = st.session_state.get("current_user", "")
 client_name = client["name"]
 gender = client.get("gender", "male")
 
+# Show height info (stored on client profile, needed for BMI/BF% computation).
+if not client.get("height_cm"):
+    st.warning(
+        f"⚠️ Height is not set on **{client_name}**'s profile. "
+        "BMI and body fat % cannot be calculated without it. "
+        "Please update the profile first."
+    )
+    st.page_link("pages/1_client_profile.py", label=f"→ {t('step_client_profile')}")
+else:
+    st.caption(
+        f"👤 **{client_name}** · {client['age']} y/o · {client['gender'].title()} · "
+        f"Height: {client['height_cm']} cm"
+    )
+
 # ── Thresholds for range bars (mirrors logic.py) ─────────────────────────────
 
 _BMI_THRESHOLDS = {
