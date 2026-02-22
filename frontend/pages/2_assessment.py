@@ -72,7 +72,7 @@ if not battery:
 manual_tests = [t_item for t_item in battery if not t_item.get("computed", False)]
 computed_tests = [t_item for t_item in battery if t_item.get("computed", False)]
 
-# Category labels from i18n bundle.
+# Category and test labels from i18n bundle.
 lang_bundle = __import__("utils").load_translations(st.session_state.get("lang", "en"))
 CAT_LABELS: dict[str, str] = dict(lang_bundle.get("categories", {}))
 _DEFAULT_CATS = {
@@ -82,9 +82,20 @@ _DEFAULT_CATS = {
     "body_comp": "Body Composition",
 }
 
+# Map English test_name → translated test_name via test_id.
+_TEST_ID_LABELS: dict[str, str] = dict(lang_bundle.get("tests", {}))
+_TEST_NAME_TRANSLATIONS: dict[str, str] = {
+    item["test_name"]: _TEST_ID_LABELS.get(item["test_id"], item["test_name"])
+    for item in battery
+}
+
 
 def _cat_label(key: str) -> str:
     return CAT_LABELS.get(key, _DEFAULT_CATS.get(key, key))
+
+
+def _test_label(test_name: str) -> str:
+    return _TEST_NAME_TRANSLATIONS.get(test_name, test_name)
 
 
 categories: dict[str, list[dict]] = {}
@@ -106,7 +117,7 @@ with st.form("assessment_form"):
 
         for idx, test in enumerate(tests_in_cat):
             test_id = test["test_id"]
-            label = f"{test['test_name']}\n({test['unit']})"
+            label = f"{_test_label(test['test_name'])}\n({test['unit']})"
             with cols[idx % 3]:
                 value = st.number_input(
                     label=label,
@@ -328,7 +339,7 @@ if "calculation" in st.session_state:
                 f'<div style="border:1px solid #e0e0e0;border-radius:6px;'
                 f'padding:10px 12px;text-align:center;background:#fafafa;">'
                 f'<div style="font-size:0.8em;color:#555;margin-bottom:4px;">'
-                f'{r["test_name"]}</div>'
+                f'{_test_label(r["test_name"])}</div>'
                 f'<div style="font-size:1.2em;font-weight:700;margin-bottom:6px;">'
                 f'{value_str}&nbsp;<span style="font-size:0.7em;color:#888;">'
                 f'{r["unit"]}</span></div>'
@@ -367,7 +378,7 @@ if "calculation" in st.session_state:
                 h = hist_map.get(tname)
                 c = curr_map.get(tname)
                 col_t, col_h, col_c = st.columns([2, 2, 2])
-                col_t.write(tname)
+                col_t.write(_test_label(tname))
                 if h:
                     raw_h = h["raw_value"]
                     vs_h = str(int(raw_h)) if raw_h == int(raw_h) else f"{raw_h:.1f}"
