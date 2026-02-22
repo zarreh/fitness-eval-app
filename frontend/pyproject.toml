@@ -9,6 +9,7 @@ package-mode = false
 python = ">=3.11,<4.0"
 streamlit = "^1"
 httpx = "^0.28"
+plotly = "^6.5.2"
 
 [build-system]
 requires = ["poetry-core"]

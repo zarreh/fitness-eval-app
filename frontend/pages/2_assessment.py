@@ -6,6 +6,7 @@ import httpx
 import streamlit as st
 from utils import (
     rating_badge_html,
+    render_metric_chart,
     render_page_header,
     render_range_bar_html,
     require_login,
@@ -408,6 +409,23 @@ if "calculation" in st.session_state:
                     )
                 else:
                     col_c.write("—")
+
+    # ── Progress Charts ────────────────────────────────────────────────────────
+    if len(history) >= 2:
+        with st.expander(f"📈 {t('charts_expander')}", expanded=False):
+            charted = 0
+            for r in results:
+                if r.get("thresholds"):
+                    render_metric_chart(
+                        test_name=r["test_name"],
+                        history=history,
+                        thresholds=r["thresholds"],
+                        inverted=r.get("inverted", False),
+                        unit=r.get("unit", ""),
+                    )
+                    charted += 1
+            if charted == 0:
+                st.caption(t("charts_no_data"))
 
     st.divider()
     st.page_link("pages/3_report.py", label=t("assessment_continue"))

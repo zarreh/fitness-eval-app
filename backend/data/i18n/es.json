@@ -136,7 +136,9 @@
     "measurement_body_fat": "Grasa Corporal %",
     "measurement_body_fat_rating": "Calificación GC",
     "measurement_fat_mass": "Masa Grasa (kg)",
-    "measurement_lean_mass": "Masa Magra (kg)"
+    "measurement_lean_mass": "Masa Magra (kg)",
+    "charts_expander": "Gráficos de Progreso",
+    "charts_no_data": "No hay datos para graficar (se necesitan 2+ evaluaciones con umbrales)."
   },
   "ratings": {
     "Excellent": "Excelente",

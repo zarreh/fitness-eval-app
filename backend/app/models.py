@@ -98,6 +98,9 @@ class ReportResponse(BaseModel):
     coach_name: Optional[str] = None
     organization: Optional[str] = None
     language: str = "en"
+    # Assessment history snapshots for chart generation (optional; set by frontend
+    # when calling /assess/generate-pdf so PDF can embed time-series charts).
+    assessment_history: list[dict] = []
 
 
 class TestInfo(BaseModel):

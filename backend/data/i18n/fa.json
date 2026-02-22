@@ -136,7 +136,9 @@
     "measurement_body_fat": "درصد چربی بدن",
     "measurement_body_fat_rating": "رتبه چربی",
     "measurement_fat_mass": "توده چربی (کیلوگرم)",
-    "measurement_lean_mass": "توده عضلانی (کیلوگرم)"
+    "measurement_lean_mass": "توده عضلانی (کیلوگرم)",
+    "charts_expander": "نمودارهای پیشرفت",
+    "charts_no_data": "داده‌ای برای نمودار وجود ندارد (حداقل ۲ ارزیابی با آستانه‌ها لازم است)."
   },
   "ratings": {
     "Excellent": "عالی",

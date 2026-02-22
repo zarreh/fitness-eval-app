@@ -248,6 +248,146 @@ def _build_range_bars(
     return bars
 
 
+def _render_chart_png(
+    test_name: str,
+    history: list[dict],
+    thresholds: dict[str, float],
+    inverted: bool,
+    unit: str,
+) -> str | None:
+    """Build a Plotly progress chart and return it as a base64-encoded PNG.
+
+    History is expected in newest-first order (as stored in the DB); it is
+    reversed internally so the chart runs oldest → newest left to right.
+    Returns ``None`` when fewer than 2 data points exist for the metric,
+    or if plotly / kaleido are unavailable.
+
+    Args:
+        test_name: Metric name used to filter history snapshots.
+        history: List of assessment snapshot dicts (each with ``results``
+            and ``assessed_at`` keys), newest first.
+        thresholds: Dict with keys ``excellent``, ``very_good``, ``good``,
+            ``fair`` (boundary values for the 5 rating zones).
+        inverted: If True, lower values are better (e.g. step-test BPM).
+        unit: Unit string for the y-axis label.
+
+    Returns:
+        Base64-encoded PNG string, or ``None``.
+    """
+    try:
+        import base64
+
+        import plotly.graph_objects as go  # type: ignore[import-untyped]
+        import plotly.io as pio  # type: ignore[import-untyped]
+    except ImportError:
+        return None
+
+    # Build chronological (oldest → newest) data points.
+    points: list[tuple[str, float]] = []
+    for snap in reversed(history):
+        assessed_at = str(snap.get("assessed_at", ""))[:16].replace("T", " ")
+        for r in snap.get("results", []):
+            if r.get("test_name") == test_name:
+                points.append((assessed_at, float(r["raw_value"])))
+                break
+
+    if len(points) < 2:
+        return None
+
+    dates, values = zip(*points)
+
+    t_fair = thresholds["fair"]
+    t_good = thresholds["good"]
+    t_vgood = thresholds["very_good"]
+    t_excellent = thresholds["excellent"]
+
+    if inverted:
+        y_min = min(t_excellent * 0.85, min(values) * 0.85)
+        y_max = max(t_fair * 1.2, max(values) * 1.1)
+        zone_bands: list[tuple[float, float, str]] = [
+            (t_excellent, y_max, "#f8d7da"),
+            (t_vgood, t_excellent, "#fff3cd"),
+            (t_good, t_vgood, "#c8f0c8"),
+            (t_fair, t_good, "#b8e8c8"),
+            (y_min, t_fair, "#d4edda"),
+        ]
+    else:
+        y_min = 0.0
+        y_max = max(t_excellent * 1.25, max(values) * 1.1)
+        zone_bands = [
+            (y_min, t_fair, "#f8d7da"),
+            (t_fair, t_good, "#fff3cd"),
+            (t_good, t_vgood, "#c8f0c8"),
+            (t_vgood, t_excellent, "#b8e8c8"),
+            (t_excellent, y_max, "#d4edda"),
+        ]
+
+    fig = go.Figure()
+    for y0, y1, color in zone_bands:
+        fig.add_hrect(
+            y0=y0, y1=y1,
+            fillcolor=color, opacity=0.45,
+            layer="below", line_width=0,
+        )
+    fig.add_trace(go.Scatter(
+        x=list(dates),
+        y=list(values),
+        mode="lines+markers",
+        marker=dict(size=7, color="#1a1a2e"),
+        line=dict(color="#1a1a2e", width=2),
+    ))
+    fig.update_layout(
+        yaxis_title=unit,
+        yaxis_range=[y_min, y_max],
+        height=180,
+        width=520,
+        margin=dict(l=50, r=20, t=16, b=40),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        showlegend=False,
+        font=dict(family="Helvetica Neue, Helvetica, Arial, sans-serif", size=9),
+    )
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#eeeeee")
+
+    try:
+        img_bytes: bytes = pio.to_image(fig, format="png", scale=1.5)
+        return base64.b64encode(img_bytes).decode("utf-8")
+    except Exception:
+        return None
+
+
+def _build_chart_images(
+    results: list[MetricResult],
+    history: list[dict],
+) -> dict[str, str]:
+    """Build a test_name → base64 PNG lookup for progress charts.
+
+    Args:
+        results: MetricResult objects for the report (provides thresholds).
+        history: Assessment history snapshots (newest first).
+
+    Returns:
+        Dict mapping test_name to base64 PNG string.  Empty when history
+        has fewer than 2 snapshots or kaleido is unavailable.
+    """
+    if len(history) < 2:
+        return {}
+    chart_images: dict[str, str] = {}
+    for r in results:
+        if r.thresholds:
+            png = _render_chart_png(
+                test_name=r.test_name,
+                history=history,
+                thresholds=r.thresholds,
+                inverted=r.inverted,
+                unit=r.unit,
+            )
+            if png:
+                chart_images[r.test_name] = png
+    return chart_images
+
+
 def render_report_pdf(report: ReportResponse) -> bytes:
     """Render a ReportResponse to PDF bytes via Jinja2 + WeasyPrint.
 
@@ -278,6 +418,7 @@ def render_report_pdf(report: ReportResponse) -> bytes:
         category_groups=_group_by_category(report.results, cat_labels),
         progress_map=_build_progress_map(report.progress),
         range_bars=_build_range_bars(report.results, direction=direction),
+        chart_images=_build_chart_images(report.results, report.assessment_history),
     )
     pdf_bytes: bytes = HTML(
         string=html_content, base_url=str(TEMPLATES_DIR)

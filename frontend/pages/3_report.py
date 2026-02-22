@@ -139,10 +139,15 @@ if "report" in st.session_state:
     if "pdf_bytes" not in st.session_state:
         with st.spinner(t("report_rendering_pdf")):
             try:
+                # Inject assessment_history so the PDF can embed progress charts.
+                pdf_payload = dict(report)
+                pdf_payload["assessment_history"] = st.session_state.get(
+                    "assessment_history", []
+                )
                 pdf_response = httpx.post(
                     f"{API_URL}/assess/generate-pdf",
-                    json=report,
-                    timeout=30.0,
+                    json=pdf_payload,
+                    timeout=60.0,
                 )
                 pdf_response.raise_for_status()
                 st.session_state["pdf_bytes"] = pdf_response.content

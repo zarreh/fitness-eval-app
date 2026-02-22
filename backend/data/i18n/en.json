@@ -136,7 +136,9 @@
     "measurement_body_fat": "Body Fat %",
     "measurement_body_fat_rating": "BF Rating",
     "measurement_fat_mass": "Fat Mass (kg)",
-    "measurement_lean_mass": "Lean Mass (kg)"
+    "measurement_lean_mass": "Lean Mass (kg)",
+    "charts_expander": "Progress Charts",
+    "charts_no_data": "No chart data available (need 2+ assessments with thresholds)."
   },
   "ratings": {
     "Excellent": "Excellent",

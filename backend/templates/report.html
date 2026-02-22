@@ -632,6 +632,14 @@
           </td>
         </tr>
         {% endif %}
+        {% set chart_png = chart_images.get(result.test_name) if chart_images else None %}
+        {% if chart_png %}
+        <tr>
+          <td colspan="{{ col_count }}" style="padding:4px 10px 10px 10px;border-bottom:1px solid var(--border-light);">
+            <img src="data:image/png;base64,{{ chart_png }}" style="width:100%;max-width:520px;height:auto;display:block;">
+          </td>
+        </tr>
+        {% endif %}
         {% endfor %}
       </tbody>
     </table>

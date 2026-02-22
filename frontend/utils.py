@@ -619,6 +619,100 @@ def render_range_bar_html(
     )
 
 
+def render_metric_chart(
+    test_name: str,
+    history: list[dict],
+    thresholds: dict[str, float],
+    inverted: bool,
+    unit: str,
+) -> None:
+    """Render a Plotly line chart with zone backgrounds for a metric's history.
+
+    Only renders when the metric appears in 2 or more history snapshots.
+    History is expected newest-first (as returned by the backend); it is
+    reversed internally so the chart runs oldest → newest left to right.
+
+    Args:
+        test_name: The metric name used to filter history snapshots.
+        history: List of assessment snapshot dicts (each with ``results``
+            and ``assessed_at`` keys).
+        thresholds: Dict with keys ``excellent``, ``very_good``, ``good``,
+            ``fair`` (boundary values for the 5 rating zones).
+        inverted: If True, lower values are better (e.g. step-test BPM).
+        unit: Unit string shown on the y-axis label.
+    """
+    import plotly.graph_objects as go  # type: ignore[import-untyped]
+
+    # Build chronological (oldest → newest) (date_label, value) pairs.
+    points: list[tuple[str, float]] = []
+    for snap in reversed(history):
+        assessed_at = str(snap.get("assessed_at", ""))[:16].replace("T", " ")
+        for r in snap.get("results", []):
+            if r.get("test_name") == test_name:
+                points.append((assessed_at, float(r["raw_value"])))
+                break
+
+    if len(points) < 2:
+        return
+
+    dates, values = zip(*points)
+
+    t_fair = thresholds["fair"]
+    t_good = thresholds["good"]
+    t_vgood = thresholds["very_good"]
+    t_excellent = thresholds["excellent"]
+
+    if inverted:
+        y_min = min(t_excellent * 0.85, min(values) * 0.85)
+        y_max = max(t_fair * 1.2, max(values) * 1.1)
+        zone_bands = [
+            (t_excellent, y_max, "#f8d7da"),
+            (t_vgood, t_excellent, "#fff3cd"),
+            (t_good, t_vgood, "#c8f0c8"),
+            (t_fair, t_good, "#b8e8c8"),
+            (y_min, t_fair, "#d4edda"),
+        ]
+    else:
+        y_min = 0.0
+        y_max = max(t_excellent * 1.25, max(values) * 1.1)
+        zone_bands = [
+            (y_min, t_fair, "#f8d7da"),
+            (t_fair, t_good, "#fff3cd"),
+            (t_good, t_vgood, "#c8f0c8"),
+            (t_vgood, t_excellent, "#b8e8c8"),
+            (t_excellent, y_max, "#d4edda"),
+        ]
+
+    fig = go.Figure()
+    for y0, y1, color in zone_bands:
+        fig.add_hrect(
+            y0=y0, y1=y1,
+            fillcolor=color, opacity=0.5,
+            layer="below", line_width=0,
+        )
+    fig.add_trace(go.Scatter(
+        x=list(dates),
+        y=list(values),
+        mode="lines+markers",
+        marker=dict(size=8, color="#1a1a2e"),
+        line=dict(color="#1a1a2e", width=2),
+        hovertemplate="%{x}<br>%{y} " + unit + "<extra></extra>",
+    ))
+    fig.update_layout(
+        yaxis_title=unit,
+        yaxis_range=[y_min, y_max],
+        height=240,
+        margin=dict(l=40, r=20, t=16, b=36),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        showlegend=False,
+        font=dict(size=11),
+    )
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#eee")
+    st.plotly_chart(fig, use_container_width=True)
+
+
 def rating_badge_html(rating: str) -> str:
     """Return an inline HTML badge for the given rating.
 
