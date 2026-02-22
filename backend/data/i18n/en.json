@@ -103,7 +103,22 @@
     "history_compare_with": "Compare with historical assessment:",
     "history_comparison": "History Comparison",
     "export_csv": "Export History CSV",
-    "session_expired": "Your session has expired. Please sign in again."
+    "session_expired": "Your session has expired. Please sign in again.",
+    "signup_link": "New coach? Create an account",
+    "signup_title": "Create Coach Account",
+    "signup_display_name": "Display Name",
+    "signup_display_name_placeholder": "e.g. Jane Smith",
+    "signup_username": "Username",
+    "signup_username_help": "3–32 characters: letters, digits, underscores only.",
+    "signup_password": "Password",
+    "signup_password_help": "Minimum 8 characters.",
+    "signup_confirm_password": "Confirm Password",
+    "signup_button": "Create Account",
+    "signup_success": "Account created! You can now sign in.",
+    "signup_error_username_taken": "That username is already taken. Please choose another.",
+    "signup_error_passwords_mismatch": "Passwords do not match.",
+    "signup_error_generic": "Sign-up failed. Please check your inputs and try again.",
+    "signup_already_have_account": "Already have an account? Sign in"
   },
   "ratings": {
     "Excellent": "Excellent",

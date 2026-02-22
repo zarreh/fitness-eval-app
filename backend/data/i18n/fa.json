@@ -103,7 +103,22 @@
     "history_compare_with": "مقایسه با ارزیابی تاریخی:",
     "history_comparison": "مقایسه تاریخچه",
     "export_csv": "خروجی CSV تاریخچه",
-    "session_expired": "جلسه شما منقضی شده است. لطفاً دوباره وارد شوید."
+    "session_expired": "جلسه شما منقضی شده است. لطفاً دوباره وارد شوید.",
+    "signup_link": "مربی جدید؟ ایجاد حساب کاربری",
+    "signup_title": "ایجاد حساب مربی",
+    "signup_display_name": "نام نمایشی",
+    "signup_display_name_placeholder": "مثلاً علی محمدی",
+    "signup_username": "نام کاربری",
+    "signup_username_help": "۳ تا ۳۲ کاراکتر: حروف، اعداد و زیرخط.",
+    "signup_password": "رمز عبور",
+    "signup_password_help": "حداقل ۸ کاراکتر.",
+    "signup_confirm_password": "تأیید رمز عبور",
+    "signup_button": "ایجاد حساب",
+    "signup_success": "حساب ایجاد شد! اکنون می‌توانید وارد شوید.",
+    "signup_error_username_taken": "این نام کاربری قبلاً گرفته شده. لطفاً نام دیگری انتخاب کنید.",
+    "signup_error_passwords_mismatch": "رمزهای عبور مطابقت ندارند.",
+    "signup_error_generic": "ثبت‌نام ناموفق بود. لطفاً اطلاعات را بررسی کنید و دوباره امتحان کنید.",
+    "signup_already_have_account": "حساب دارید؟ وارد شوید"
   },
   "ratings": {
     "Excellent": "عالی",

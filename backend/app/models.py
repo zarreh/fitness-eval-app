@@ -136,6 +136,23 @@ class ClientRecord(BaseModel):
     coach_username: str = ""
 
 
+class SignupRequest(BaseModel):
+    """Credentials and display name submitted to /auth/signup."""
+
+    username: str
+    password: str
+    display_name: str
+
+
+class SignupResponse(BaseModel):
+    """Response from /auth/signup."""
+
+    success: bool
+    username: str = ""
+    display_name: str = ""
+    error: str = ""
+
+
 class BodyMeasurementInput(BaseModel):
     """Input for logging a new body measurement snapshot (Phase 4)."""
 

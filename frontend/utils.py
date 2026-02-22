@@ -269,6 +269,12 @@ def require_login() -> None:
             except httpx.ConnectError:
                 st.error(t("login_backend_error"))
 
+        st.markdown(
+            f"<div style='text-align:center;margin-top:0.6rem;font-size:0.9em;'>"
+            f"<a href='/0_signup' target='_self'>{t('signup_link')}</a></div>",
+            unsafe_allow_html=True,
+        )
+
     st.stop()
 
 

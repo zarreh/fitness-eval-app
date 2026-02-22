@@ -103,7 +103,22 @@
     "history_compare_with": "Comparar con evaluación histórica:",
     "history_comparison": "Comparación de historial",
     "export_csv": "Exportar historial CSV",
-    "session_expired": "Su sesión ha expirado. Por favor inicie sesión nuevamente."
+    "session_expired": "Su sesión ha expirado. Por favor inicie sesión nuevamente.",
+    "signup_link": "¿Nuevo entrenador? Crear una cuenta",
+    "signup_title": "Crear Cuenta de Entrenador",
+    "signup_display_name": "Nombre para mostrar",
+    "signup_display_name_placeholder": "p. ej. Juan García",
+    "signup_username": "Usuario",
+    "signup_username_help": "3–32 caracteres: letras, dígitos y guiones bajos únicamente.",
+    "signup_password": "Contraseña",
+    "signup_password_help": "Mínimo 8 caracteres.",
+    "signup_confirm_password": "Confirmar Contraseña",
+    "signup_button": "Crear Cuenta",
+    "signup_success": "¡Cuenta creada! Ya puedes iniciar sesión.",
+    "signup_error_username_taken": "Ese nombre de usuario ya está en uso. Por favor elige otro.",
+    "signup_error_passwords_mismatch": "Las contraseñas no coinciden.",
+    "signup_error_generic": "Registro fallido. Verifica tus datos e inténtalo de nuevo.",
+    "signup_already_have_account": "¿Ya tienes cuenta? Inicia sesión"
   },
   "ratings": {
     "Excellent": "Excelente",

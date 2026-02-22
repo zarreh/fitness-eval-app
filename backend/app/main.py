@@ -37,6 +37,8 @@ from app.models import (
     MetricResult,
     ReportRequest,
     ReportResponse,
+    SignupRequest,
+    SignupResponse,
     TestInfo,
 )
 
@@ -115,6 +117,48 @@ async def login(
         raise HTTPException(status_code=401, detail="Invalid username or password.")
     return LoginResponse(
         authenticated=True,
+        username=coach["username"],
+        display_name=coach["display_name"],
+    )
+
+
+@app.post("/auth/signup", response_model=SignupResponse, tags=["auth"])
+async def signup(
+    request: SignupRequest, db: AsyncSession = Depends(get_db)
+) -> SignupResponse:
+    """Register a new coach account.
+
+    Validates username format (``^[a-zA-Z0-9_]{3,32}$``) and minimum
+    password length (8 chars).  Returns HTTP 409 if the username is already
+    taken, HTTP 422 if validation fails.
+    """
+    import re
+
+    if not re.fullmatch(r"[a-zA-Z0-9_]{3,32}", request.username):
+        raise HTTPException(
+            status_code=422,
+            detail="Username must be 3–32 characters: letters, digits, underscores only.",
+        )
+    if len(request.password) < 8:
+        raise HTTPException(
+            status_code=422,
+            detail="Password must be at least 8 characters.",
+        )
+    if not request.display_name.strip():
+        raise HTTPException(status_code=422, detail="Display name is required.")
+
+    existing = await db_service.get_coach_by_username(db, request.username)
+    if existing:
+        raise HTTPException(status_code=409, detail="Username already taken.")
+
+    coach = await db_service.create_coach(
+        db,
+        username=request.username,
+        password=request.password,
+        display_name=request.display_name.strip(),
+    )
+    return SignupResponse(
+        success=True,
         username=coach["username"],
         display_name=coach["display_name"],
     )
