@@ -22,7 +22,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libharfbuzz0b \
         shared-mime-info \
         fonts-liberation \
+        fonts-noto-core \
         fontconfig \
+    && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
